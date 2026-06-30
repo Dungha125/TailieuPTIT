@@ -1,4 +1,3 @@
-version: "3.9"
 
 # VPS only (Frontend trên Vercel): Backend + Postgres + Redis + MinIO
 # Chạy: docker compose -f docker-compose.vps.yml --env-file .env up -d --build
@@ -26,11 +25,13 @@ services:
     image: redis:7-alpine
     container_name: tailieuptit-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep PONG"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -62,18 +63,23 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-tailieuptit}
       POSTGRES_HOST: postgres
       POSTGRES_PORT: "5432"
-      REDIS_URL: redis://redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_SECURE: "false"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       JWT_ALGORITHM: HS256
-      JWT_EXPIRE_MINUTES: "1440"
+      JWT_EXPIRE_MINUTES: "480"
+      ENVIRONMENT: production
+      ENABLE_HSTS: "true"
+      TRUSTED_HOSTS: ${TRUSTED_HOSTS:-api.tailieuptit.lcdkhoacntt1.com}
+      RATE_LIMIT_FAIL_CLOSED: "true"
       CORS_ORIGINS: ${CORS_ORIGINS}
       MAX_FILE_SIZE_MB: "50"
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      STORAGE_QUOTA_GB: ${STORAGE_QUOTA_GB:-60}
     ports:
       # Chỉ bind localhost — Caddy/Nginx trên host sẽ proxy HTTPS vào đây
       - "127.0.0.1:8000:8000"

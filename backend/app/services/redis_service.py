@@ -53,7 +53,7 @@ class RedisService:
             return current <= limit
         except Exception as e:
             logger.warning("Redis rate limit error: %s", e)
-            return True
+            return not settings.rate_limit_fail_closed
 
     def increment_hot_download(self, doc_id: int) -> None:
         try:

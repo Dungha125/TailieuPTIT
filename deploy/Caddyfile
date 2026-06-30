@@ -1,4 +1,29 @@
-# Thay api.tailieuptit.example.com bằng subdomain thật của bạn
+# Caddy — HTTPS reverse proxy with security headers
+# Replace domain and reload: sudo systemctl reload caddy
+
 api.tailieuptit.example.com {
-    reverse_proxy 127.0.0.1:8000
+    encode gzip zstd
+
+    header {
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        -Server
+    }
+
+    request_body {
+        max_size 55MB
+    }
+
+    reverse_proxy 127.0.0.1:8000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+        transport http {
+            read_timeout 60s
+            write_timeout 60s
+            dial_timeout 10s
+        }
+    }
 }

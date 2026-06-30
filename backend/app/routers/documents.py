@@ -1,7 +1,9 @@
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import StreamingResponse
+from minio.error import S3Error
 from sqlalchemy.orm import Session
 import io
+import logging
 
 from app.config import settings
 from app.database import get_db
@@ -16,14 +18,35 @@ from app.services.document_service import (
     document_to_response,
     find_duplicate_by_hash,
     get_documents_query,
+    get_related_documents,
     invalidate_caches,
     paginate_documents,
 )
+from app.services.classify_service import build_taxonomy_tree
+from app.services.slug_service import unique_document_slug
 from app.services.minio_service import minio_service
 from app.services.redis_service import redis_service
-from app.utils.security import build_object_name, compute_file_hash, get_file_extension, is_image_type
+from app.utils.security import content_disposition_header, sanitize_filename
+from app.utils.client import get_client_ip
 
 router = APIRouter(prefix="/documents", tags=["Public Documents"])
+logger = logging.getLogger(__name__)
+
+
+def _load_document_file(doc: Document) -> tuple[bytes, str | None]:
+    try:
+        return minio_service.get_file(doc.bucket_name, doc.object_name)
+    except S3Error as e:
+        logger.error("MinIO get_object failed for doc %s: %s", doc.id, e)
+        if e.code in {"NoSuchKey", "NoSuchObject", "NoSuchBucket"}:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="File not found in storage",
+            ) from e
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Storage error",
+        ) from e
 
 
 def _cache_key(prefix: str, **kwargs) -> str:
@@ -35,14 +58,37 @@ def _cache_key(prefix: str, **kwargs) -> str:
 def list_documents(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    faculty: str | None = None,
+    subject: str | None = None,
+    type: str | None = Query(None, alias="type"),
+    year: str | None = None,
+    q: str | None = None,
     db: Session = Depends(get_db),
 ):
-    cache_key = _cache_key("documents", page=page, page_size=page_size)
+    cache_key = _cache_key(
+        "documents",
+        page=page,
+        page_size=page_size,
+        faculty=faculty or "",
+        subject=subject or "",
+        type=type or "",
+        year=year or "",
+        q=q or "",
+    )
     cached = redis_service.get(cache_key)
     if cached:
         return cached
 
-    items, total = paginate_documents(db, page=page, page_size=page_size)
+    items, total = paginate_documents(
+        db,
+        page=page,
+        page_size=page_size,
+        search=q,
+        faculty=faculty,
+        subject=subject,
+        doc_type=type,
+        year=year,
+    )
     response = DocumentListResponse(
         items=[document_to_response(d) for d in items],
         total=total,
@@ -52,6 +98,17 @@ def list_documents(
     )
     redis_service.set(cache_key, response.model_dump(), ttl=settings.documents_cache_ttl)
     return response
+
+
+@router.get("/taxonomy")
+def get_taxonomy(db: Session = Depends(get_db)):
+    cached = redis_service.get("taxonomy:tree")
+    if cached:
+        return cached
+    tree = build_taxonomy_tree(db)
+    payload = {"tree": tree}
+    redis_service.set("taxonomy:tree", payload, ttl=settings.tags_cache_ttl)
+    return payload
 
 
 @router.get("/search", response_model=DocumentListResponse)
@@ -119,7 +176,11 @@ def list_tags(db: Session = Depends(get_db)):
     if cached:
         return cached
 
-    tags = db.query(Tag).order_by(Tag.name).all()
+    tags = (
+        db.query(Tag)
+        .order_by(Tag.category.asc().nulls_last(), Tag.name.asc())
+        .all()
+    )
     response = TagListResponse(
         items=[TagResponse.model_validate(t) for t in tags],
         total=len(tags),
@@ -167,9 +228,10 @@ def recent_documents(db: Session = Depends(get_db)):
 @router.get("/download/{doc_id}")
 def download_document(
     doc_id: int,
+    request: Request,
     db: Session = Depends(get_db),
 ):
-    client_ip = "global"
+    client_ip = get_client_ip(request)
     rate_key = f"rate:download:{client_ip}"
     if not redis_service.check_rate_limit(
         rate_key, settings.download_rate_limit, settings.download_rate_window
@@ -184,15 +246,14 @@ def download_document(
     db.commit()
     redis_service.increment_hot_download(doc_id)
 
-    data, content_type = minio_service.get_file(doc.bucket_name, doc.object_name)
-    filename = doc.object_name.rsplit("/", 1)[-1]
-    if "_" in filename:
-        filename = filename.split("_", 1)[1]
+    data, content_type = _load_document_file(doc)
+    ext = doc.file_type or "bin"
+    filename = sanitize_filename(f"{doc.title}.{ext}")
 
     return StreamingResponse(
         io.BytesIO(data),
         media_type=content_type or "application/octet-stream",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition_header("attachment", f"{doc.title}.{ext}")},
     )
 
 
@@ -202,15 +263,13 @@ def preview_stream(doc_id: int, db: Session = Depends(get_db)):
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    data, content_type = minio_service.get_file(doc.bucket_name, doc.object_name)
-    filename = doc.object_name.rsplit("/", 1)[-1]
-    if "_" in filename:
-        filename = filename.split("_", 1)[1]
+    data, content_type = _load_document_file(doc)
+    ext = doc.file_type or "bin"
 
     return StreamingResponse(
         io.BytesIO(data),
         media_type=content_type or "application/octet-stream",
-        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+        headers={"Content-Disposition": content_disposition_header("inline", f"{doc.title}.{ext}")},
     )
 
 
@@ -224,6 +283,44 @@ def preview_document(doc_id: int, db: Session = Depends(get_db)):
         "preview_url": f"/documents/preview/{doc_id}/stream",
         "file_type": doc.file_type,
     }
+
+
+@router.get("/category/{tag_slug}", response_model=DocumentListResponse)
+def documents_by_tag_slug(
+    tag_slug: str,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    tag = db.query(Tag).filter(Tag.slug == tag_slug).first()
+    if not tag:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
+
+    items, total = paginate_documents(db, page=page, page_size=page_size, tag_name=tag.name)
+    return DocumentListResponse(
+        items=[document_to_response(d) for d in items],
+        total=total,
+        page=page,
+        page_size=page_size,
+        has_more=(page * page_size) < total,
+    )
+
+
+@router.get("/by-slug/{slug}", response_model=DocumentResponse)
+def get_document_by_slug(slug: str, db: Session = Depends(get_db)):
+    doc = get_documents_query(db).filter(Document.slug == slug).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    return document_to_response(doc)
+
+
+@router.get("/{doc_id}/related", response_model=list[DocumentResponse])
+def related_documents(doc_id: int, db: Session = Depends(get_db)):
+    doc = get_documents_query(db).filter(Document.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+    related = get_related_documents(db, doc, limit=8)
+    return [document_to_response(d) for d in related]
 
 
 @router.get("/{doc_id}", response_model=DocumentResponse)

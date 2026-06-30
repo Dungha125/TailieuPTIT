@@ -16,5 +16,7 @@ class Tag(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String(100), unique=True, nullable=False, index=True)
+    slug = Column(String(120), unique=True, nullable=True, index=True)
+    category = Column(String(20), nullable=True, index=True)
 
     documents = relationship("Document", secondary=document_tags, back_populates="tags")

@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
+from app.schemas.classify import DocumentTagMetadata
 from app.schemas.tag import TagResponse
 
 
@@ -16,11 +17,18 @@ class DocumentUpdate(BaseModel):
     description: str | None = None
     visibility: bool | None = None
     tag_ids: list[int] | None = None
+    faculty: str | None = Field(None, max_length=200)
+    subject: str | None = Field(None, max_length=200)
+    doc_type: str | None = Field(None, max_length=100)
+    year: str | None = Field(None, max_length=10)
 
 
 class DocumentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
     title: str
+    slug: str | None = None
     description: str | None
     file_url: str
     object_name: str
@@ -32,10 +40,8 @@ class DocumentResponse(BaseModel):
     uploaded_by: int | None
     created_at: datetime
     updated_at: datetime
-    tags: list[TagResponse] = []
-
-    class Config:
-        from_attributes = True
+    tags: DocumentTagMetadata
+    legacy_tags: list[TagResponse] = Field(default_factory=list)
 
 
 class DocumentListResponse(BaseModel):

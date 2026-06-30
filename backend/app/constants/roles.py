@@ -1,0 +1,10 @@
+ROLE_ADMIN = "admin"
+ROLE_EDITOR = "editor"
+
+ALLOWED_ROLES = (ROLE_ADMIN, ROLE_EDITOR)
+PORTAL_ROLES = (ROLE_ADMIN, ROLE_EDITOR)
+
+ROLE_LABELS = {
+    ROLE_ADMIN: "Quản trị viên",
+    ROLE_EDITOR: "Biên tập viên",
+}

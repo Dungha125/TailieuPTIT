@@ -1,0 +1,19 @@
+[DEFAULT]
+bantime = 1800
+findtime = 600
+maxretry = 5
+
+[sshd]
+enabled = true
+port = ssh
+filter = sshd
+logpath = /var/log/auth.log
+
+# Requires nginx access log or caddy log with 401/403/429
+[tailieuptit-api]
+enabled = false
+port = http,https
+filter = tailieuptit-api
+logpath = /var/log/caddy/access.log
+maxretry = 20
+bantime = 3600

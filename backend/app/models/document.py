@@ -10,6 +10,7 @@ class Document(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(255), nullable=False, index=True)
+    slug = Column(String(300), unique=True, nullable=True, index=True)
     description = Column(Text, nullable=True)
     object_name = Column(String(500), nullable=False)
     bucket_name = Column(String(100), nullable=False)
@@ -19,6 +20,10 @@ class Document(Base):
     download_count = Column(Integer, default=0)
     visibility = Column(Boolean, default=True, nullable=False)
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    tag_faculty = Column(String(200), nullable=True, index=True)
+    tag_subject = Column(String(200), nullable=True, index=True)
+    tag_doc_type = Column(String(100), nullable=True, index=True)
+    tag_year = Column(String(10), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
