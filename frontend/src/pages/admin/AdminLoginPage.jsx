@@ -3,24 +3,31 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../api';
+import { createSubmitLock } from '../../utils/security';
 import '../../styles/admin.scss';
+
+const submitLock = createSubmitLock();
 
 const AdminLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const onFinish = async (values) => {
-    setLoading(true);
-    try {
-      const res = await authApi.login(values.username, values.password);
-      localStorage.setItem('admin_token', res.data.access_token);
-      message.success('Đăng nhập thành công');
-      navigate('/internal-admin-portal');
-    } catch (err) {
-      message.error(err.response?.data?.detail || 'Đăng nhập thất bại');
-    } finally {
-      setLoading(false);
-    }
+    if (submitLock.isLocked()) return;
+
+    await submitLock.run(async () => {
+      setLoading(true);
+      try {
+        const res = await authApi.login(values.username, values.password);
+        localStorage.setItem('admin_token', res.data.access_token);
+        message.success('Đăng nhập thành công');
+        navigate('/internal-admin-portal');
+      } catch (err) {
+        message.error(err.message || err.response?.data?.detail || 'Đăng nhập thất bại');
+      } finally {
+        setLoading(false);
+      }
+    });
   };
 
   return (
