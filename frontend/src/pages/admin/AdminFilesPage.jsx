@@ -10,6 +10,7 @@ import {
   DeleteOutlined,
 } from '@ant-design/icons';
 import { documentPath } from '../../seo/seoConfig';
+import { adminApi, documentsApi } from '../../api';
 import PageHeader from '../../components/admin/PageHeader';
 import StatCard from '../../components/admin/StatCard';
 import StatsSkeleton from '../../components/admin/StatsSkeleton';

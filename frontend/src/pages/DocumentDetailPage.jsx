@@ -11,21 +11,62 @@ import { breadcrumbSchema, creativeWorkSchema } from '../seo/schema';
 import { categoryPath, documentPath, documentTitle } from '../seo/seoConfig';
 import { downloadBlob, formatDate, formatFileSize, isPreviewable } from '../utils/helpers';
 
-const DocumentDetailPage = () => {
-  const { slug } = useParams();
+/**
+ * @param {{ legacyId?: boolean }} props
+ * legacyId=true → route /documents/:id (fallback khi chưa có slug)
+ */
+const DocumentDetailPage = ({ legacyId = false }) => {
+  const params = useParams();
+  const slug = legacyId ? null : params.slug;
+  const id = legacyId ? params.id : null;
+
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
   const [previewOpen, setPreviewOpen] = useState(false);
 
   useEffect(() => {
-    documentsApi
-      .getBySlug(slug)
-      .then((res) => setDocument(res.data))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [slug]);
+    let cancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setDocument(null);
+
+      try {
+        if (slug) {
+          try {
+            const res = await documentsApi.getBySlug(slug);
+            if (!cancelled) setDocument(res.data);
+            return;
+          } catch {
+            // Fallback: slug có thể là id cũ hoặc backend chưa migrate
+            if (/^\d+$/.test(slug)) {
+              const res = await documentsApi.get(slug);
+              if (!cancelled) setDocument(res.data);
+              return;
+            }
+          }
+        }
+
+        if (id) {
+          const res = await documentsApi.get(id);
+          if (!cancelled) setDocument(res.data);
+          return;
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [slug, id]);
 
   const handleDownload = async () => {
+    if (!document) return;
     try {
       const res = await documentsApi.download(document.id);
       downloadBlob(res.data, `${document.title}.${document.file_type}`);
@@ -59,10 +100,8 @@ const DocumentDetailPage = () => {
 
   const breadcrumbItems = [
     { name: 'Tài liệu', path: '/documents' },
-    ...(primaryTag
-      ? [{ name: primaryTag.name, path: categoryPath(primaryTag) }]
-      : []),
-    { name: document.title },
+    ...(primaryTag ? [{ name: primaryTag.name, path: categoryPath(primaryTag) }] : []),
+    { name: document.title, path: documentPath(document) },
   ];
 
   return (
@@ -73,10 +112,7 @@ const DocumentDetailPage = () => {
         keywords={keywords}
         canonical={documentPath(document)}
         ogType="article"
-        jsonLd={[
-          creativeWorkSchema(document),
-          breadcrumbSchema(breadcrumbItems),
-        ]}
+        jsonLd={[creativeWorkSchema(document), breadcrumbSchema(breadcrumbItems)]}
       />
 
       <SeoBreadcrumb items={breadcrumbItems} />

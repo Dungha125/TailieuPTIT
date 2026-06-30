@@ -49,12 +49,14 @@ export function breadcrumbSchema(items) {
   return {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
-    itemListElement: items.map((item, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      name: item.name,
-      item: absoluteUrl(item.path),
-    })),
+    itemListElement: items
+      .filter((item) => item.name)
+      .map((item, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        name: item.name,
+        ...(item.path ? { item: absoluteUrl(item.path) } : {}),
+      })),
   };
 }
 

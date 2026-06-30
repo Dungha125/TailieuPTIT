@@ -6,12 +6,11 @@ import viVN from 'antd/locale/vi_VN';
 import PublicNavbar from './components/PublicNavbar';
 import AdminLayout from './components/admin/AdminLayout';
 import ProtectedRoute from './components/admin/ProtectedRoute';
+import HomePage from './pages/HomePage';
+import DocumentsPage from './pages/DocumentsPage';
+import SearchPage from './pages/SearchPage';
+import DocumentDetailPage from './pages/DocumentDetailPage';
 
-const HomePage = lazy(() => import('./pages/HomePage'));
-const DocumentsPage = lazy(() => import('./pages/DocumentsPage'));
-const SearchPage = lazy(() => import('./pages/SearchPage'));
-const DocumentDetailPage = lazy(() => import('./pages/DocumentDetailPage'));
-const DocumentLegacyRedirect = lazy(() => import('./pages/DocumentLegacyRedirect'));
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
 const AdminUploadPage = lazy(() => import('./pages/admin/AdminUploadPage'));
@@ -54,7 +53,10 @@ function App() {
                 <Route path="/documents" element={<PublicLayout><DocumentsPage /></PublicLayout>} />
                 <Route path="/danh-muc/:tagSlug" element={<PublicLayout><DocumentsPage /></PublicLayout>} />
                 <Route path="/tai-lieu/:slug" element={<PublicLayout><DocumentDetailPage /></PublicLayout>} />
-                <Route path="/documents/:id" element={<PublicLayout><DocumentLegacyRedirect /></PublicLayout>} />
+                <Route
+                  path="/documents/:id"
+                  element={<PublicLayout><DocumentDetailPage legacyId /></PublicLayout>}
+                />
                 <Route path="/search" element={<PublicLayout><SearchPage /></PublicLayout>} />
 
                 <Route path="/internal-admin-portal/login" element={<AdminLoginPage />} />

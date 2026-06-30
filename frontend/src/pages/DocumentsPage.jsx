@@ -42,7 +42,17 @@ const DocumentsPage = () => {
       try {
         let res;
         if (slug) {
-          res = await documentsApi.byCategorySlug(slug, pageNum, PAGE_SIZE);
+          try {
+            res = await documentsApi.byCategorySlug(slug, pageNum, PAGE_SIZE);
+          } catch {
+            const tagsRes = await documentsApi.tags();
+            const tag = tagsRes.data.items.find((t) => t.slug === slug);
+            if (tag) {
+              res = await documentsApi.byTag(tag.name, pageNum, PAGE_SIZE);
+            } else {
+              throw new Error('Category not found');
+            }
+          }
         } else if (tag === 'Chưa phân loại') {
           res = await documentsApi.unclassified(pageNum, PAGE_SIZE);
         } else if (tag) {
