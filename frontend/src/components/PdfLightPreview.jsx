@@ -66,7 +66,7 @@ const PdfLightPreview = ({ documentId, title }) => {
     return (
       <div style={{ textAlign: 'center', padding: 48 }}>
         <Spin size="large" />
-        <p style={{ marginTop: 12, color: '#888' }}>Đang tạo bản xem trước nhẹ...</p>
+        <p style={{ marginTop: 12, color: '#888' }}>Đang tạo bản xem trước ...</p>
       </div>
     );
   }
@@ -79,7 +79,7 @@ const PdfLightPreview = ({ documentId, title }) => {
     <div className="pdf-light-preview">
       {totalPages > MAX_PAGES && (
         <Typography.Text type="secondary" className="pdf-preview-note">
-          Hiển thị {MAX_PAGES}/{totalPages} trang đầu (độ phân giải thấp). Tải file để xem đầy đủ.
+          Hiển thị {MAX_PAGES}/{totalPages} trang đầu. Tải file để xem đầy đủ.
         </Typography.Text>
       )}
       {pages.map((p) => (
