@@ -7,12 +7,14 @@ import {
 } from '../utils/payloadCrypto';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
+const PAYLOAD_ENCRYPTION = isPayloadEncryptionEnabled();
 
 const api = axios.create({
   baseURL: API_URL,
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
-  transformResponse: [(data) => data],
+  // Chỉ tắt auto-parse JSON khi bật mã hóa payload
+  ...(PAYLOAD_ENCRYPTION ? { transformResponse: [(data) => data] } : {}),
 });
 
 if (import.meta.env.PROD) {
@@ -20,6 +22,17 @@ if (import.meta.env.PROD) {
 }
 
 const isFormData = (value) => typeof FormData !== 'undefined' && value instanceof FormData;
+
+function tryParseJsonString(data) {
+  if (typeof data !== 'string') return data;
+  const trimmed = data.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) return data;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return data;
+  }
+}
 
 api.interceptors.request.use(async (config) => {
   const token = localStorage.getItem('admin_token');
@@ -34,7 +47,7 @@ api.interceptors.request.use(async (config) => {
   }
 
   if (
-    isPayloadEncryptionEnabled() &&
+    PAYLOAD_ENCRYPTION &&
     config.data &&
     !isFormData(config.data) &&
     ['post', 'put', 'patch'].includes(config.method)
@@ -49,19 +62,15 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(async (res) => {
-  if (res.headers['x-encrypted'] === '1' && res.data) {
+  if (PAYLOAD_ENCRYPTION && res.headers['x-encrypted'] === '1' && res.data) {
     try {
       res.data = await parseEncryptedResponse(res.data);
     } catch (e) {
-      console.error('Failed to decrypt API response');
+      console.error('Failed to decrypt API response', e);
       throw e;
     }
-  } else if (typeof res.data === 'string' && res.data.startsWith('{')) {
-    try {
-      res.data = JSON.parse(res.data);
-    } catch {
-      /* keep as string */
-    }
+  } else {
+    res.data = tryParseJsonString(res.data);
   }
   return res;
 }, (error) => {
@@ -81,8 +90,11 @@ api.interceptors.response.use(async (res) => {
       : 'Quá nhiều yêu cầu. Vui lòng chờ và thử lại.';
   }
 
-  if (status === 403 && error.response?.data?.detail?.includes('blocked')) {
-    error.message = 'Truy cập tạm thời bị chặn do hoạt động bất thường.';
+  if (status === 403) {
+    const detail = error.response?.data?.detail;
+    if (typeof detail === 'string' && detail.includes('blocked')) {
+      error.message = 'Truy cập tạm thời bị chặn do hoạt động bất thường.';
+    }
   }
 
   return Promise.reject(error);
@@ -106,16 +118,8 @@ export const documentsApi = {
   unclassified: (page = 1, pageSize = 20) =>
     api.get('/documents/unclassified', { params: { page, page_size: pageSize } }),
   get: (id) => api.get(`/documents/${id}`),
-  download: (id) =>
-    api.get(`/documents/download/${id}`, {
-      responseType: 'blob',
-      transformResponse: [(data) => data],
-    }),
-  previewStream: (id) =>
-    api.get(`/documents/preview/${id}/stream`, {
-      responseType: 'blob',
-      transformResponse: [(data) => data],
-    }),
+  download: (id) => api.get(`/documents/download/${id}`, { responseType: 'blob' }),
+  previewStream: (id) => api.get(`/documents/preview/${id}/stream`, { responseType: 'blob' }),
   previewStreamUrl: (id) => `${API_URL}/documents/preview/${id}/stream`,
   preview: (id) => api.get(`/documents/preview/${id}`),
   tags: () => api.get('/documents/tags/all'),

@@ -6,6 +6,8 @@
 const ENCRYPTION_ENABLED = import.meta.env.VITE_ENABLE_PAYLOAD_ENCRYPTION === 'true';
 const RAW_KEY = import.meta.env.VITE_API_PAYLOAD_KEY || '';
 
+let cryptoKeyPromise = null;
+
 async function getKeyBytes() {
   if (!RAW_KEY) return null;
   try {
