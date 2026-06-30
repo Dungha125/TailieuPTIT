@@ -1,13 +1,15 @@
 import { memo, useState, useCallback } from 'react';
-import { isNodeActive } from '../../utils/taxonomy';
+import { isNodeActive, isOnActivePath, filterFromNodeChain } from '../../utils/taxonomy';
 
-const TreeNode = memo(({ node, filter, onSelect, depth }) => {
+const TreeNode = memo(({ node, filter, onSelect, depth, ancestors = [] }) => {
   const hasChildren = node.children?.length > 0;
-  const active = isNodeActive(node, filter);
-  const childActive = hasChildren && node.children.some(
-    (c) => isNodeActive(c, filter) || c.children?.some((cc) => isNodeActive(cc, filter) || cc.children?.some((y) => isNodeActive(y, filter)))
-  );
-  const [expanded, setExpanded] = useState(depth < 1 || active || childActive);
+  const chain = [...ancestors, node];
+  const active = isNodeActive(node, filter, ancestors);
+  const onPath = isOnActivePath(node, filter, ancestors);
+  const childActive =
+    hasChildren &&
+    node.children.some((c) => isOnActivePath(c, filter, chain));
+  const [expanded, setExpanded] = useState(depth < 1 || onPath || childActive);
 
   const handleToggle = useCallback((e) => {
     e.stopPropagation();
@@ -15,9 +17,9 @@ const TreeNode = memo(({ node, filter, onSelect, depth }) => {
   }, []);
 
   const handleSelect = useCallback(() => {
-    onSelect(node);
+    onSelect(filterFromNodeChain(ancestors, node));
     if (hasChildren) setExpanded(true);
-  }, [hasChildren, node, onSelect]);
+  }, [ancestors, hasChildren, node, onSelect]);
 
   return (
     <div className="tree-node">
@@ -47,6 +49,7 @@ const TreeNode = memo(({ node, filter, onSelect, depth }) => {
               filter={filter}
               onSelect={onSelect}
               depth={depth + 1}
+              ancestors={chain}
             />
           ))}
         </div>

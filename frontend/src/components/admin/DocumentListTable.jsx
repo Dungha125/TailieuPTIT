@@ -30,6 +30,31 @@ const DocThumbnail = ({ fileType }) => {
   );
 };
 
+const UNCLASSIFIED = 'Chưa phân loại';
+
+const renderDocumentTags = (record) => {
+  const classify = record.tags;
+  const legacy = (record.legacy_tags || []).filter((t) => t.name !== UNCLASSIFIED);
+  const labels = [];
+
+  if (classify?.subject) labels.push(classify.subject);
+  else if (legacy.length) labels.push(...legacy.map((t) => t.name));
+
+  if (classify?.type && !labels.includes(classify.type)) {
+    labels.push(classify.type);
+  }
+
+  if (labels.length === 0) {
+    return <Tag style={{ borderRadius: 12 }}>{UNCLASSIFIED}</Tag>;
+  }
+
+  return labels.slice(0, 3).map((name) => (
+    <Tag key={name} color="red" style={{ borderRadius: 12, marginBottom: 2 }}>
+      {name}
+    </Tag>
+  ));
+};
+
 const DocumentListTable = ({
   documents,
   loading,
@@ -64,19 +89,9 @@ const DocumentListTable = ({
     },
     {
       title: 'Tags',
-      dataIndex: 'tags',
       key: 'tags',
       width: 180,
-      render: (tags) =>
-        tags?.length ? (
-          tags.slice(0, 2).map((t) => (
-            <Tag key={t.id} color="red" style={{ borderRadius: 12, marginBottom: 2 }}>
-              {t.name}
-            </Tag>
-          ))
-        ) : (
-          <Tag style={{ borderRadius: 12 }}>Chưa phân loại</Tag>
-        ),
+      render: (_, record) => renderDocumentTags(record),
     },
     {
       title: 'Loại',

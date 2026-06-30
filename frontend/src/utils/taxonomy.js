@@ -54,11 +54,23 @@ export function findNodePath(tree, filter) {
   return crumbs;
 }
 
-export function isNodeActive(node, filter) {
-  const level = node.level;
-  return filter[level] === node.slug;
+export function isNodeActive(node, filter, ancestors = []) {
+  return [...ancestors, node].every((n) => filter[n.level] === n.slug);
 }
 
+export function isOnActivePath(node, filter, ancestors = []) {
+  return [...ancestors, node].every((n) => !filter[n.level] || filter[n.level] === n.slug);
+}
+
+export function filterFromNodeChain(ancestors, node) {
+  const filter = { faculty: null, subject: null, type: null, year: null };
+  [...ancestors, node].forEach((n) => {
+    filter[n.level] = n.slug;
+  });
+  return filter;
+}
+
+/** @deprecated Use filterFromNodeChain with ancestor path — slug alone is not unique across branches. */
 export function buildFilterForNode(tree, targetNode) {
   const path = [];
   const walk = (nodes, ancestors) => {

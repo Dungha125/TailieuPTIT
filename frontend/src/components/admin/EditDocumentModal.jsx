@@ -39,7 +39,9 @@ const EditDocumentModal = ({ open, document, tags, form, onCancel, onSubmit }) =
           mode="multiple"
           size="large"
           placeholder="Chọn tags"
-          options={tags.map((t) => ({ value: t.id, label: t.name }))}
+          options={tags
+            .filter((t) => t.name !== 'Chưa phân loại')
+            .map((t) => ({ value: t.id, label: t.name }))}
         />
       </Form.Item>
       <Form.Item name="visibility" label="Công khai" valuePropName="checked">

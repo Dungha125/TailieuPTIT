@@ -133,7 +133,10 @@ const AdminFilesPage = () => {
       title: record.title,
       description: record.description,
       visibility: record.visibility,
-      tag_ids: record.legacy_tags?.map((t) => t.id) || record.tags?.map((t) => t.id),
+      tag_ids:
+        record.legacy_tags
+          ?.filter((t) => t.name !== 'Chưa phân loại')
+          .map((t) => t.id) || [],
       faculty: record.tags?.faculty,
       subject: record.tags?.subject,
       doc_type: record.tags?.type,

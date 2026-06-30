@@ -11,7 +11,6 @@ import SeoHead from '../seo/SeoHead';
 import { breadcrumbSchema, collectionPageSchema } from '../seo/schema';
 import { PAGE_SEO, documentPath } from '../seo/seoConfig';
 import {
-  buildFilterForNode,
   buildFilterSearchParams,
   breadcrumbFilterFromIndex,
   findNodePath,
@@ -95,9 +94,8 @@ const DocumentsPage = () => {
     }
   }, [debouncedQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleNodeSelect = (node) => {
-    const next = buildFilterForNode(tree, node);
-    applyState(next, 1);
+  const handleNodeSelect = (nextFilter) => {
+    applyState(nextFilter, 1);
     setDrawerOpen(false);
   };
 
