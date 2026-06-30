@@ -1,4 +1,5 @@
-import { Modal, Form, Input, Switch, Select, Button } from 'antd';
+import { Modal, Form, Input, Switch, Button } from 'antd';
+import ClassifyTagFields from './ClassifyTagFields';
 
 const EditDocumentModal = ({ open, document, tags, form, onCancel, onSubmit }) => (
   <Modal
@@ -22,28 +23,7 @@ const EditDocumentModal = ({ open, document, tags, form, onCancel, onSubmit }) =
       <Form.Item name="description" label="Mô tả">
         <Input.TextArea rows={3} />
       </Form.Item>
-      <Form.Item name="faculty" label="Khoa / Viện">
-        <Input placeholder="VD: Công nghệ thông tin" />
-      </Form.Item>
-      <Form.Item name="subject" label="Môn học">
-        <Input placeholder="VD: Cấu trúc dữ liệu" />
-      </Form.Item>
-      <Form.Item name="doc_type" label="Loại tài liệu">
-        <Input placeholder="VD: Đề thi, Slide, Bài giảng" />
-      </Form.Item>
-      <Form.Item name="year" label="Năm học">
-        <Input placeholder="VD: 2024" />
-      </Form.Item>
-      <Form.Item name="tag_ids" label="Danh mục / Tags (legacy)">
-        <Select
-          mode="multiple"
-          size="large"
-          placeholder="Chọn tags"
-          options={tags
-            .filter((t) => t.name !== 'Chưa phân loại')
-            .map((t) => ({ value: t.id, label: t.name }))}
-        />
-      </Form.Item>
+      <ClassifyTagFields tags={tags} />
       <Form.Item name="visibility" label="Công khai" valuePropName="checked">
         <Switch checkedChildren="Public" unCheckedChildren="Private" />
       </Form.Item>

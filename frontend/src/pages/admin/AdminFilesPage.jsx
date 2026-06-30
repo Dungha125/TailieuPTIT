@@ -133,20 +133,22 @@ const AdminFilesPage = () => {
       title: record.title,
       description: record.description,
       visibility: record.visibility,
-      tag_ids:
-        record.legacy_tags
-          ?.filter((t) => t.name !== 'Chưa phân loại')
-          .map((t) => t.id) || [],
-      faculty: record.tags?.faculty,
-      subject: record.tags?.subject,
-      doc_type: record.tags?.type,
-      year: record.tags?.year,
+      faculty: record.tags?.faculty || undefined,
+      subject: record.tags?.subject || undefined,
+      doc_type: record.tags?.type || undefined,
+      year: record.tags?.year || undefined,
     });
   };
 
   const handleUpdate = async (values) => {
     try {
-      await adminApi.updateDocument(editing.id, values);
+      await adminApi.updateDocument(editing.id, {
+        ...values,
+        faculty: values.faculty ?? null,
+        subject: values.subject ?? null,
+        doc_type: values.doc_type ?? null,
+        year: values.year ?? null,
+      });
       message.success('Cập nhật thành công');
       setEditing(null);
       fetchData();
