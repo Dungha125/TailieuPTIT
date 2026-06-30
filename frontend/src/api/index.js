@@ -144,8 +144,31 @@ export const authApi = {
 };
 
 export const documentsApi = {
-  list: (page = 1, pageSize = 20) =>
-    api.get('/documents', { params: { page, page_size: pageSize } }),
+  list: (page = 1, pageSize = 20, filters = {}) =>
+    api.get('/documents', {
+      params: {
+        page,
+        page_size: pageSize,
+        faculty: filters.faculty || undefined,
+        subject: filters.subject || undefined,
+        type: filters.type || undefined,
+        year: filters.year || undefined,
+        q: filters.q || undefined,
+      },
+    }),
+  browse: ({ page = 1, pageSize = 12, faculty, subject, type, year, q } = {}) =>
+    api.get('/documents', {
+      params: {
+        page,
+        page_size: pageSize,
+        faculty: faculty || undefined,
+        subject: subject || undefined,
+        type: type || undefined,
+        year: year || undefined,
+        q: q || undefined,
+      },
+    }),
+  taxonomy: () => api.get('/documents/taxonomy'),
   search: (q, page = 1, pageSize = 20) =>
     api.get('/documents/search', { params: { q, page, page_size: pageSize } }),
   byTag: (tag, page = 1, pageSize = 20) => {

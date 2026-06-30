@@ -101,7 +101,7 @@ const AdminFilesPage = () => {
       );
     }
     if (filters.tagId) {
-      result = result.filter((d) => d.tags?.some((t) => t.id === filters.tagId));
+      result = result.filter((d) => d.legacy_tags?.some((t) => t.id === filters.tagId));
     }
     return sortDocuments(result, filters.sort);
   }, [documents, filters]);
@@ -133,7 +133,11 @@ const AdminFilesPage = () => {
       title: record.title,
       description: record.description,
       visibility: record.visibility,
-      tag_ids: record.tags?.map((t) => t.id),
+      tag_ids: record.legacy_tags?.map((t) => t.id) || record.tags?.map((t) => t.id),
+      faculty: record.tags?.faculty,
+      subject: record.tags?.subject,
+      doc_type: record.tags?.type,
+      year: record.tags?.year,
     });
   };
 

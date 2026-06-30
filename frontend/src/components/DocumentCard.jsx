@@ -18,7 +18,16 @@ const DocumentCard = ({ document, onClick }) => {
         </p>
       )}
       <div className="doc-card-tags">
-        {document.tags?.map((tag) => (
+        {document.tags?.subject && (
+          <Tag color="red">{document.tags.subject}</Tag>
+        )}
+        {document.tags?.type && (
+          <Tag>{document.tags.type}</Tag>
+        )}
+        {document.tags?.year && (
+          <Tag>{document.tags.year}</Tag>
+        )}
+        {!document.tags?.subject && document.legacy_tags?.map((tag) => (
           <Tag key={tag.id} color="red">
             {tag.name}
           </Tag>

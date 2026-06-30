@@ -39,6 +39,10 @@ const AdminUploadPage = () => {
       if (values.tag_ids?.length) {
         formData.append('tag_ids', values.tag_ids.join(','));
       }
+      if (values.faculty) formData.append('faculty', values.faculty);
+      if (values.subject) formData.append('subject', values.subject);
+      if (values.doc_type) formData.append('doc_type', values.doc_type);
+      if (values.year) formData.append('year', values.year);
 
       setUploadProgress(60);
       const res = await adminApi.upload(formData);
@@ -137,7 +141,19 @@ const AdminUploadPage = () => {
           <Form.Item name="description" label="Mô tả">
             <Input.TextArea rows={3} placeholder="Mô tả tài liệu..." />
           </Form.Item>
-          <Form.Item name="tag_ids" label="Danh mục / Tags">
+          <Form.Item name="faculty" label="Khoa / Viện">
+            <Input size="large" placeholder="VD: Công nghệ thông tin" />
+          </Form.Item>
+          <Form.Item name="subject" label="Môn học">
+            <Input size="large" placeholder="VD: Cấu trúc dữ liệu" />
+          </Form.Item>
+          <Form.Item name="doc_type" label="Loại tài liệu">
+            <Input size="large" placeholder="VD: Đề thi, Slide, Bài giảng" />
+          </Form.Item>
+          <Form.Item name="year" label="Năm học">
+            <Input size="large" placeholder="VD: 2024" />
+          </Form.Item>
+          <Form.Item name="tag_ids" label="Danh mục / Tags (legacy)">
             <Select
               mode="multiple"
               size="large"

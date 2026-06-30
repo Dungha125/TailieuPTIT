@@ -1,112 +1,126 @@
-import { Spin } from 'antd';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { FilterOutlined } from '@ant-design/icons';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { documentsApi } from '../api';
-import DocumentCard from '../components/DocumentCard';
+import Breadcrumb from '../components/documents/Breadcrumb';
+import DocumentGrid from '../components/documents/DocumentGrid';
+import Pagination from '../components/documents/Pagination';
+import SidebarTree from '../components/documents/SidebarTree';
 import PreviewModal from '../components/PreviewModal';
-import TagSidebar from '../components/TagSidebar';
-import SeoBreadcrumb from '../seo/SeoBreadcrumb';
 import SeoHead from '../seo/SeoHead';
 import { breadcrumbSchema, collectionPageSchema } from '../seo/schema';
-import { PAGE_SEO, categoryTitle, documentPath, tagMatchesSlug, tagName, tagSlug as resolveTagSlug } from '../seo/seoConfig';
+import { PAGE_SEO, documentPath } from '../seo/seoConfig';
+import {
+  buildFilterForNode,
+  buildFilterSearchParams,
+  breadcrumbFilterFromIndex,
+  findNodePath,
+  parseFilterFromSearchParams,
+} from '../utils/taxonomy';
+import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { downloadBlob } from '../utils/helpers';
+import '../styles/documents-filter.css';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 12;
 
 const DocumentsPage = () => {
-  const { tagSlug } = useParams();
-  const [documents, setDocuments] = useState([]);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [activeTag, setActiveTag] = useState(null);
-  const [categoryName, setCategoryName] = useState(null);
-  const [previewDoc, setPreviewDoc] = useState(null);
-  const loadMoreRef = useRef(null);
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const parsed = parseFilterFromSearchParams(searchParams);
+  const filter = useMemo(
+    () => ({
+      faculty: parsed.faculty,
+      subject: parsed.subject,
+      type: parsed.type,
+      year: parsed.year,
+    }),
+    [parsed.faculty, parsed.subject, parsed.type, parsed.year]
+  );
 
-  useEffect(() => {
-    if (tagSlug) {
-      documentsApi.tags().then((res) => {
-        const tag = res.data.items.find((t) => tagMatchesSlug(t, tagSlug));
-        setCategoryName(tag?.name || tagSlug.replace(/-/g, ' '));
-      });
-    }
-  }, [tagSlug]);
+  const [tree, setTree] = useState([]);
+  const [treeLoading, setTreeLoading] = useState(true);
+  const [documents, setDocuments] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [previewDoc, setPreviewDoc] = useState(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState(parsed.q);
+  const debouncedQ = useDebouncedValue(searchInput);
 
-  const fetchDocuments = useCallback(
-    async (pageNum, tag, slug, append = false) => {
-      const setter = append ? setLoadingMore : setLoading;
-      setter(true);
-      try {
-        let res;
-        const tagLabel = tagName(tag);
+  const page = parsed.page;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
-        if (slug) {
-          try {
-            res = await documentsApi.byCategorySlug(slug, pageNum, PAGE_SIZE);
-          } catch {
-            const tagsRes = await documentsApi.tags();
-            const matched = tagsRes.data.items.find((t) => tagMatchesSlug(t, slug));
-            if (matched) {
-              res = await documentsApi.byTag(matched.name, pageNum, PAGE_SIZE);
-            } else {
-              throw new Error('Category not found');
-            }
-          }
-        } else if (tagLabel === 'Chưa phân loại') {
-          res = await documentsApi.unclassified(pageNum, PAGE_SIZE);
-        } else if (tagLabel) {
-          res = await documentsApi.byTag(tagLabel, pageNum, PAGE_SIZE);
-        } else {
-          res = await documentsApi.list(pageNum, PAGE_SIZE);
-        }
-        const { items, has_more } = res.data;
-        setDocuments((prev) => (append ? [...prev, ...items] : items));
-        setHasMore(has_more);
-      } catch (err) {
-        console.error(err);
-        if (!append) {
-          setDocuments([]);
-          setHasMore(false);
-        }
-      } finally {
-        setter(false);
-      }
+  const crumbs = useMemo(() => findNodePath(tree, filter), [tree, filter]);
+
+  const applyState = useCallback(
+    (nextFilter, nextPage = 1, q = debouncedQ) => {
+      const params = buildFilterSearchParams(nextFilter, nextPage, q);
+      setSearchParams(params, { replace: true });
     },
-    []
+    [debouncedQ, setSearchParams]
   );
 
   useEffect(() => {
-    if (tagSlug) {
-      setActiveTag(null);
-      setPage(1);
-      fetchDocuments(1, null, tagSlug, false);
-      return;
-    }
-    setCategoryName(null);
-    setPage(1);
-    fetchDocuments(1, activeTag, null, false);
-  }, [activeTag, tagSlug, fetchDocuments]);
+    documentsApi
+      .taxonomy()
+      .then((res) => setTree(res.data.tree || []))
+      .catch(console.error)
+      .finally(() => setTreeLoading(false));
+  }, []);
 
   useEffect(() => {
-    if (!hasMore || loading || loadingMore) return;
+    setLoading(true);
+    documentsApi
+      .browse({
+        page,
+        pageSize: PAGE_SIZE,
+        faculty: filter.faculty,
+        subject: filter.subject,
+        type: filter.type,
+        year: filter.year,
+        q: debouncedQ,
+      })
+      .then((res) => {
+        setDocuments(res.data.items);
+        setTotal(res.data.total);
+      })
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, [page, filter, debouncedQ]);
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting) {
-          const nextPage = page + 1;
-          setPage(nextPage);
-          fetchDocuments(nextPage, activeTag, tagSlug, true);
-        }
-      },
-      { threshold: 0.1 }
-    );
+  useEffect(() => {
+    const currentQ = searchParams.get('q') || '';
+    if (debouncedQ !== currentQ) {
+      applyState(filter, 1, debouncedQ);
+    }
+  }, [debouncedQ]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loading, loadingMore, page, activeTag, tagSlug, fetchDocuments]);
+  const handleNodeSelect = (node) => {
+    const next = buildFilterForNode(tree, node);
+    applyState(next, 1);
+    setDrawerOpen(false);
+  };
+
+  const handleClearFilter = () => {
+    applyState({ faculty: null, subject: null, type: null, year: null }, 1, '');
+    setSearchInput('');
+    setDrawerOpen(false);
+  };
+
+  const handleBreadcrumb = (item, index) => {
+    if (item.level === 'home') {
+      handleClearFilter();
+      return;
+    }
+    applyState(breadcrumbFilterFromIndex(crumbs, index), 1);
+  };
+
+  const handlePageChange = (nextPage) => {
+    applyState(filter, nextPage);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCardClick = (doc) => navigate(documentPath(doc));
 
   const handleDownload = async (doc) => {
     try {
@@ -117,94 +131,67 @@ const DocumentsPage = () => {
     }
   };
 
-  const handleCardClick = (doc) => {
-    navigate(documentPath(doc));
-  };
+  const pageTitle = crumbs.length > 1 ? crumbs[crumbs.length - 1].label : 'Danh sách tài liệu';
+  const seoPath = `/documents${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
 
-  const seo = tagSlug && categoryName
-    ? {
-        title: categoryTitle(categoryName),
-        description: `Tổng hợp tài liệu ${categoryName} PTIT - đề thi, slide, giáo trình miễn phí.`,
-        keywords: `${categoryName}, tài liệu PTIT, ${categoryName} PTIT`,
-        path: `/danh-muc/${tagSlug}`,
-      }
-    : PAGE_SEO.documents;
-
-  const breadcrumbItems = tagSlug && categoryName
-    ? [{ name: 'Tài liệu', path: '/documents' }, { name: categoryName }]
-    : [{ name: 'Danh sách tài liệu' }];
+  const sidebar = (
+    <SidebarTree
+      tree={tree}
+      filter={filter}
+      onSelect={handleNodeSelect}
+      onClear={handleClearFilter}
+      loading={treeLoading}
+    />
+  );
 
   return (
-    <div>
+    <div className="documents-page">
       <SeoHead
-        title={seo.title}
-        description={seo.description}
-        keywords={seo.keywords}
-        canonical={seo.path}
+        title={`${pageTitle} | Tài liệu PTIT`}
+        description={PAGE_SEO.documents.description}
+        keywords={PAGE_SEO.documents.keywords}
+        canonical={seoPath}
         jsonLd={[
-          collectionPageSchema(seo.title, seo.description, seo.path),
-          breadcrumbSchema([
-            { name: 'Trang chủ', path: '/' },
-            ...breadcrumbItems.map((b) => ({ name: b.name, path: b.path || seo.path })),
-          ]),
+          collectionPageSchema(pageTitle, PAGE_SEO.documents.description, seoPath),
+          breadcrumbSchema(crumbs.map((c) => ({ name: c.label, path: c.level === 'home' ? '/' : undefined }))),
         ]}
       />
 
-      <SeoBreadcrumb items={breadcrumbItems} />
-
-      <h1 className="page-title">
-        {tagSlug && categoryName ? `Tài liệu ${categoryName}` : 'Danh sách tài liệu'}
-      </h1>
+      <h1 className="page-title">{pageTitle}</h1>
       <p className="page-subtitle">Tra cứu và tải xuống tài liệu công khai PTIT</p>
 
-      <div className="documents-layout">
-        <TagSidebar
-          activeTag={activeTag}
-          tagSlug={tagSlug}
-          onTagSelect={(tag) => {
-            setPage(1);
-            if (tag === null) {
-              navigate('/documents');
-              setActiveTag(null);
-              return;
-            }
-            const name = tagName(tag);
-            if (name === 'Chưa phân loại') {
-              navigate('/documents');
-              setActiveTag('Chưa phân loại');
-              return;
-            }
-            const slug = resolveTagSlug(tag);
-            if (slug) {
-              navigate(`/danh-muc/${slug}`);
-            } else {
-              navigate('/documents');
-              setActiveTag(name);
-            }
-          }}
+      <div className="documents-page__toolbar">
+        <button type="button" className="documents-page__filter-btn" onClick={() => setDrawerOpen(true)}>
+          <FilterOutlined /> Bộ lọc
+        </button>
+        <div className="documents-page__search">
+          <input
+            type="search"
+            placeholder="Tìm kiếm tài liệu..."
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+        </div>
+      </div>
+
+      <Breadcrumb items={crumbs} onNavigate={handleBreadcrumb} />
+
+      <div className="documents-page__layout">
+        <div className={`documents-sidebar-wrap ${drawerOpen ? 'documents-sidebar-wrap--open' : ''}`}>
+          {sidebar}
+        </div>
+        <div
+          className={`documents-drawer-backdrop ${drawerOpen ? 'documents-drawer-backdrop--visible' : ''}`}
+          onClick={() => setDrawerOpen(false)}
+          aria-hidden
         />
 
         <div>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: 48 }}>
-              <Spin size="large" />
-            </div>
-          ) : documents.length === 0 ? (
-            <div className="empty-state">Không tìm thấy tài liệu nào</div>
-          ) : (
-            <>
-              <div className="doc-grid">
-                {documents.map((doc) => (
-                  <DocumentCard key={doc.id} document={doc} onClick={handleCardClick} />
-                ))}
-              </div>
-              {hasMore && (
-                <div className="load-more" ref={loadMoreRef}>
-                  {loadingMore && <Spin />}
-                </div>
-              )}
-            </>
-          )}
+          <p style={{ marginBottom: 12, color: '#757575', fontSize: '0.9rem' }}>
+            {loading ? 'Đang tải...' : `${total} tài liệu`}
+          </p>
+          <DocumentGrid documents={documents} loading={loading} onCardClick={handleCardClick} />
+          <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
         </div>
       </div>
 

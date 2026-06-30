@@ -87,16 +87,19 @@ const DocumentDetailPage = ({ legacyId = false }) => {
     return <div className="empty-state">Không tìm thấy tài liệu</div>;
   }
 
-  const primaryTag = document.tags?.find((t) => t.name !== 'Chưa phân loại') || document.tags?.[0];
+  const primaryTag = document.legacy_tags?.find((t) => t.name !== 'Chưa phân loại')
+    || document.legacy_tags?.[0];
+  const tagLabels = [
+    document.tags?.faculty,
+    document.tags?.subject,
+    document.tags?.type,
+    document.tags?.year,
+    ...(document.legacy_tags?.map((t) => t.name) || []),
+  ].filter(Boolean);
   const description =
     document.description?.slice(0, 160) ||
     `Tải xuống ${document.title} - tài liệu học tập PTIT (${document.file_type?.toUpperCase()}).`;
-  const keywords = [
-    document.title,
-    ...(document.tags?.map((t) => t.name) || []),
-    'PTIT',
-    'tài liệu',
-  ].join(', ');
+  const keywords = [document.title, ...tagLabels, 'PTIT', 'tài liệu'].join(', ');
 
   const breadcrumbItems = [
     { name: 'Tài liệu', path: '/documents' },
@@ -123,7 +126,11 @@ const DocumentDetailPage = ({ legacyId = false }) => {
           <div style={{ flex: 1 }}>
             <h1 style={{ fontSize: '1.5rem', marginBottom: 8, color: '#D32F2F' }}>{document.title}</h1>
             <div className="doc-card-tags">
-              {document.tags?.map((tag) => (
+              {document.tags?.faculty && <Tag color="red">{document.tags.faculty}</Tag>}
+              {document.tags?.subject && <Tag color="red">{document.tags.subject}</Tag>}
+              {document.tags?.type && <Tag>{document.tags.type}</Tag>}
+              {document.tags?.year && <Tag>{document.tags.year}</Tag>}
+              {document.legacy_tags?.map((tag) => (
                 <Link key={tag.id} to={categoryPath(tag)}>
                   <Tag color="red">{tag.name}</Tag>
                 </Link>

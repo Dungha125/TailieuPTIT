@@ -28,7 +28,15 @@ export function creativeWorkSchema(document) {
     },
     datePublished: document.created_at,
     dateModified: document.updated_at || document.created_at,
-    keywords: document.tags?.map((t) => t.name).join(', '),
+    keywords: [
+      document.tags?.faculty,
+      document.tags?.subject,
+      document.tags?.type,
+      document.tags?.year,
+      ...(document.legacy_tags?.map((t) => t.name) || []),
+    ]
+      .filter(Boolean)
+      .join(', '),
     educationalLevel: 'University',
     learningResourceType: document.file_type?.toUpperCase(),
     url: absoluteUrl(`/tai-lieu/${document.slug || document.id}`),
