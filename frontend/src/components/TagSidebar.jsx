@@ -2,9 +2,9 @@ import { Spin } from 'antd';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { documentsApi } from '../api';
-import { categoryPath, tagName, tagSlug } from '../seo/seoConfig';
+import { categoryPath, tagName, tagSlug as resolveTagSlug } from '../seo/seoConfig';
 
-const TagSidebar = ({ activeTag, tagSlug, onTagSelect }) => {
+const TagSidebar = ({ activeTag, tagSlug: routeTagSlug, onTagSelect }) => {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -19,9 +19,9 @@ const TagSidebar = ({ activeTag, tagSlug, onTagSelect }) => {
   if (loading) return <Spin />;
 
   const isTagActive = (tag) => {
-    const slug = tagSlug(tag);
+    const slug = resolveTagSlug(tag);
     const name = tagName(tag);
-    return tagSlug === slug || activeTag === name;
+    return routeTagSlug === slug || activeTag === name;
   };
 
   return (
@@ -29,7 +29,7 @@ const TagSidebar = ({ activeTag, tagSlug, onTagSelect }) => {
       <h2 style={{ fontSize: '1rem', marginBottom: 12, color: '#D32F2F' }}>Danh mục</h2>
       <ul className="tag-list">
         <li
-          className={`tag-item ${!activeTag && !tagSlug ? 'active' : ''}`}
+          className={`tag-item ${!activeTag && !routeTagSlug ? 'active' : ''}`}
           onClick={() => onTagSelect(null)}
         >
           Tất cả

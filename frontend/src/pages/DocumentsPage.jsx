@@ -8,7 +8,7 @@ import TagSidebar from '../components/TagSidebar';
 import SeoBreadcrumb from '../seo/SeoBreadcrumb';
 import SeoHead from '../seo/SeoHead';
 import { breadcrumbSchema, collectionPageSchema } from '../seo/schema';
-import { PAGE_SEO, categoryTitle, documentPath, tagMatchesSlug, tagName, tagSlug } from '../seo/seoConfig';
+import { PAGE_SEO, categoryTitle, documentPath, tagMatchesSlug, tagName, tagSlug as resolveTagSlug } from '../seo/seoConfig';
 import { downloadBlob } from '../utils/helpers';
 
 const PAGE_SIZE = 20;
@@ -174,7 +174,7 @@ const DocumentsPage = () => {
               setActiveTag('Chưa phân loại');
               return;
             }
-            const slug = tagSlug(tag);
+            const slug = resolveTagSlug(tag);
             if (slug) {
               navigate(`/danh-muc/${slug}`);
             } else {
