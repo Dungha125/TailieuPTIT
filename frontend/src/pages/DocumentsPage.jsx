@@ -8,7 +8,7 @@ import TagSidebar from '../components/TagSidebar';
 import SeoBreadcrumb from '../seo/SeoBreadcrumb';
 import SeoHead from '../seo/SeoHead';
 import { breadcrumbSchema, collectionPageSchema } from '../seo/schema';
-import { PAGE_SEO, categoryTitle, documentPath } from '../seo/seoConfig';
+import { PAGE_SEO, categoryTitle, documentPath, tagMatchesSlug, tagName, tagSlug } from '../seo/seoConfig';
 import { downloadBlob } from '../utils/helpers';
 
 const PAGE_SIZE = 20;
@@ -29,7 +29,7 @@ const DocumentsPage = () => {
   useEffect(() => {
     if (tagSlug) {
       documentsApi.tags().then((res) => {
-        const tag = res.data.items.find((t) => t.slug === tagSlug);
+        const tag = res.data.items.find((t) => tagMatchesSlug(t, tagSlug));
         setCategoryName(tag?.name || tagSlug.replace(/-/g, ' '));
       });
     }
@@ -41,22 +41,24 @@ const DocumentsPage = () => {
       setter(true);
       try {
         let res;
+        const tagLabel = tagName(tag);
+
         if (slug) {
           try {
             res = await documentsApi.byCategorySlug(slug, pageNum, PAGE_SIZE);
           } catch {
             const tagsRes = await documentsApi.tags();
-            const tag = tagsRes.data.items.find((t) => t.slug === slug);
-            if (tag) {
-              res = await documentsApi.byTag(tag.name, pageNum, PAGE_SIZE);
+            const matched = tagsRes.data.items.find((t) => tagMatchesSlug(t, slug));
+            if (matched) {
+              res = await documentsApi.byTag(matched.name, pageNum, PAGE_SIZE);
             } else {
               throw new Error('Category not found');
             }
           }
-        } else if (tag === 'Chưa phân loại') {
+        } else if (tagLabel === 'Chưa phân loại') {
           res = await documentsApi.unclassified(pageNum, PAGE_SIZE);
-        } else if (tag) {
-          res = await documentsApi.byTag(tag, pageNum, PAGE_SIZE);
+        } else if (tagLabel) {
+          res = await documentsApi.byTag(tagLabel, pageNum, PAGE_SIZE);
         } else {
           res = await documentsApi.list(pageNum, PAGE_SIZE);
         }
@@ -65,6 +67,10 @@ const DocumentsPage = () => {
         setHasMore(has_more);
       } catch (err) {
         console.error(err);
+        if (!append) {
+          setDocuments([]);
+          setHasMore(false);
+        }
       } finally {
         setter(false);
       }
@@ -156,15 +162,25 @@ const DocumentsPage = () => {
           activeTag={activeTag}
           tagSlug={tagSlug}
           onTagSelect={(tag) => {
-            if (tag?.slug) {
-              navigate(`/danh-muc/${tag.slug}`);
-            } else if (tag === null) {
+            setPage(1);
+            if (tag === null) {
               navigate('/documents');
+              setActiveTag(null);
+              return;
+            }
+            const name = tagName(tag);
+            if (name === 'Chưa phân loại') {
+              navigate('/documents');
+              setActiveTag('Chưa phân loại');
+              return;
+            }
+            const slug = tagSlug(tag);
+            if (slug) {
+              navigate(`/danh-muc/${slug}`);
             } else {
               navigate('/documents');
-              setActiveTag(tag);
+              setActiveTag(name);
             }
-            setPage(1);
           }}
         />
 

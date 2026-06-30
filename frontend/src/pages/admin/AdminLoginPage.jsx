@@ -23,7 +23,12 @@ const AdminLoginPage = () => {
         message.success('Đăng nhập thành công');
         navigate('/internal-admin-portal');
       } catch (err) {
-        message.error(err.message || err.response?.data?.detail || 'Đăng nhập thất bại');
+        const detail = err.response?.data?.detail;
+        const msg =
+          err.message ||
+          (typeof detail === 'string' ? detail : null) ||
+          'Đăng nhập thất bại';
+        message.error(msg);
       } finally {
         setLoading(false);
       }

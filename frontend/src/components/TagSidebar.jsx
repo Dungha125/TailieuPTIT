@@ -2,7 +2,7 @@ import { Spin } from 'antd';
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { documentsApi } from '../api';
-import { categoryPath } from '../seo/seoConfig';
+import { categoryPath, tagName, tagSlug } from '../seo/seoConfig';
 
 const TagSidebar = ({ activeTag, tagSlug, onTagSelect }) => {
   const [tags, setTags] = useState([]);
@@ -17,6 +17,12 @@ const TagSidebar = ({ activeTag, tagSlug, onTagSelect }) => {
   }, []);
 
   if (loading) return <Spin />;
+
+  const isTagActive = (tag) => {
+    const slug = tagSlug(tag);
+    const name = tagName(tag);
+    return tagSlug === slug || activeTag === name;
+  };
 
   return (
     <aside className="tag-sidebar">
@@ -39,11 +45,9 @@ const TagSidebar = ({ activeTag, tagSlug, onTagSelect }) => {
           .map((tag) => (
             <li
               key={tag.id}
-              className={`tag-item ${tagSlug === tag.slug || activeTag === tag.name ? 'active' : ''}`}
+              className={`tag-item ${isTagActive(tag) ? 'active' : ''}`}
             >
-              <Link to={categoryPath(tag)} onClick={() => onTagSelect(tag)}>
-                {tag.name}
-              </Link>
+              <Link to={categoryPath(tag)}>{tag.name}</Link>
             </li>
           ))}
       </ul>

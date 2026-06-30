@@ -9,6 +9,24 @@ import {
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 const PAYLOAD_ENCRYPTION = isPayloadEncryptionEnabled();
 
+let backendEncryptionEnabled = null;
+
+async function shouldUsePayloadEncryption() {
+  if (!PAYLOAD_ENCRYPTION) return false;
+  if (backendEncryptionEnabled !== null) return backendEncryptionEnabled;
+  try {
+    const res = await fetch(`${API_URL}/health`);
+    const data = await res.json();
+    backendEncryptionEnabled = Boolean(data.payload_encryption_enabled);
+  } catch {
+    backendEncryptionEnabled = false;
+  }
+  if (!backendEncryptionEnabled) {
+    console.warn('[API] Bỏ qua mã hóa payload: backend chưa bật ENABLE_API_PAYLOAD_ENCRYPTION');
+  }
+  return backendEncryptionEnabled;
+}
+
 const api = axios.create({
   baseURL: API_URL,
   timeout: 60000,
@@ -46,8 +64,12 @@ api.interceptors.request.use(async (config) => {
     config.headers['X-Idempotency-Key'] = idempotencyKey('idem');
   }
 
+  const path = (config.url || '').split('?')[0];
+  const useEncryption = await shouldUsePayloadEncryption();
+
   if (
-    PAYLOAD_ENCRYPTION &&
+    useEncryption &&
+    !path.startsWith('/auth/') &&
     config.data &&
     !isFormData(config.data) &&
     ['post', 'put', 'patch'].includes(config.method)
@@ -62,7 +84,8 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(async (res) => {
-  if (PAYLOAD_ENCRYPTION && res.headers['x-encrypted'] === '1' && res.data) {
+  const useEncryption = await shouldUsePayloadEncryption();
+  if (useEncryption && res.headers['x-encrypted'] === '1' && res.data) {
     try {
       res.data = await parseEncryptedResponse(res.data);
     } catch (e) {
@@ -97,6 +120,14 @@ api.interceptors.response.use(async (res) => {
     }
   }
 
+  if (status === 422) {
+    const detail = error.response?.data?.detail;
+    if (Array.isArray(detail) && detail.some((d) => d.type === 'model_attributes_type')) {
+      error.message =
+        'Lỗi định dạng dữ liệu đăng nhập. Kiểm tra cấu hình mã hóa API (VITE_ENABLE_PAYLOAD_ENCRYPTION).';
+    }
+  }
+
   return Promise.reject(error);
 });
 
@@ -113,8 +144,13 @@ export const documentsApi = {
     api.get('/documents', { params: { page, page_size: pageSize } }),
   search: (q, page = 1, pageSize = 20) =>
     api.get('/documents/search', { params: { q, page, page_size: pageSize } }),
-  byTag: (tag, page = 1, pageSize = 20) =>
-    api.get(`/documents/tag/${encodeURIComponent(tag)}`, { params: { page, page_size: pageSize } }),
+  byTag: (tag, page = 1, pageSize = 20) => {
+    const name = typeof tag === 'string' ? tag : tag?.name;
+    if (!name) return Promise.reject(new Error('Invalid tag'));
+    return api.get(`/documents/tag/${encodeURIComponent(name)}`, {
+      params: { page, page_size: pageSize },
+    });
+  },
   unclassified: (page = 1, pageSize = 20) =>
     api.get('/documents/unclassified', { params: { page, page_size: pageSize } }),
   get: (id) => api.get(`/documents/${id}`),
