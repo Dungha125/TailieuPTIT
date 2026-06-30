@@ -1,16 +1,25 @@
-import { Card, Col, Row, Statistic, Table, Spin } from 'antd';
+import { Table } from 'antd';
 import {
-  FileOutlined,
+  FileTextOutlined,
   DownloadOutlined,
-  TagsOutlined,
+  FolderOutlined,
+  RiseOutlined,
   FireOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { adminApi, documentsApi } from '../../api';
 import { formatDate } from '../../utils/helpers';
+import PageHeader from '../../components/admin/PageHeader';
+import StatCard from '../../components/admin/StatCard';
+import StatsSkeleton from '../../components/admin/StatsSkeleton';
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 const AdminDashboard = () => {
-  const [stats, setStats] = useState({ total: 0, tags: 0, downloads: 0 });
+  const [documents, setDocuments] = useState([]);
+  const [tagCount, setTagCount] = useState(0);
   const [recent, setRecent] = useState([]);
   const [hot, setHot] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,12 +32,8 @@ const AdminDashboard = () => {
       documentsApi.hot(),
     ])
       .then(([docsRes, tagsRes, recentRes, hotRes]) => {
-        const docs = docsRes.data;
-        setStats({
-          total: docs.length,
-          tags: tagsRes.data.total,
-          downloads: docs.reduce((sum, d) => sum + d.download_count, 0),
-        });
+        setDocuments(docsRes.data);
+        setTagCount(tagsRes.data.total);
         setRecent(recentRes.data.slice(0, 5));
         setHot(hotRes.data.slice(0, 5));
       })
@@ -36,15 +41,32 @@ const AdminDashboard = () => {
       .finally(() => setLoading(false));
   }, []);
 
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const newThisWeek = documents.filter(
+      (d) => now - new Date(d.created_at).getTime() < WEEK_MS
+    ).length;
+    return {
+      total: documents.length,
+      downloads: documents.reduce((sum, d) => sum + (d.download_count || 0), 0),
+      categories: tagCount,
+      newThisWeek,
+    };
+  }, [documents, tagCount]);
+
   const columns = [
-    { title: 'Tiêu đề', dataIndex: 'title', key: 'title' },
-    { title: 'Loại', dataIndex: 'file_type', key: 'file_type', width: 80 },
     {
-      title: 'Lượt tải',
-      dataIndex: 'download_count',
-      key: 'download_count',
-      width: 100,
+      title: 'Tiêu đề',
+      dataIndex: 'title',
+      key: 'title',
+      render: (title, record) => (
+        <Link to={`/documents/${record.id}`} target="_blank">
+          {title}
+        </Link>
+      ),
     },
+    { title: 'Loại', dataIndex: 'file_type', key: 'file_type', width: 80 },
+    { title: 'Lượt tải', dataIndex: 'download_count', key: 'download_count', width: 100 },
     {
       title: 'Ngày tạo',
       dataIndex: 'created_at',
@@ -53,73 +75,45 @@ const AdminDashboard = () => {
     },
   ];
 
-  if (loading) {
-    return (
-      <div style={{ textAlign: 'center', padding: 48 }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
-
   return (
     <div>
-      <h1 className="page-title">Dashboard</h1>
-      <p className="page-subtitle">Tổng quan hệ thống TailieuPTIT</p>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Tổng quan hệ thống quản lý tài liệu TailieuPTIT"
+        breadcrumbs={[{ label: 'Dashboard' }]}
+      />
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Tổng tài liệu"
-              value={stats.total}
-              prefix={<FileOutlined style={{ color: '#C62828' }} />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Tổng nhãn"
-              value={stats.tags}
-              prefix={<TagsOutlined style={{ color: '#C62828' }} />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Tổng lượt tải"
-              value={stats.downloads}
-              prefix={<DownloadOutlined style={{ color: '#C62828' }} />}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {loading ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="admin-stats">
+          <StatCard icon={<FileTextOutlined />} label="Tổng tài liệu" value={stats.total} color="red" />
+          <StatCard icon={<DownloadOutlined />} label="Tổng lượt tải" value={stats.downloads} color="blue" />
+          <StatCard icon={<FolderOutlined />} label="Số danh mục" value={stats.categories} color="green" />
+          <StatCard icon={<RiseOutlined />} label="Mới tuần này" value={stats.newThisWeek} color="orange" />
+        </div>
+      )}
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title={<><FireOutlined /> Top tải xuống</>}>
-            <Table
-              dataSource={hot}
-              columns={columns}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <Card title="Tài liệu mới nhất">
-            <Table
-              dataSource={recent}
-              columns={columns}
-              rowKey="id"
-              pagination={false}
-              size="small"
-            />
-          </Card>
-        </Col>
-      </Row>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20 }}>
+        <div className="admin-doc-panel">
+          <div className="admin-doc-panel__toolbar">
+            <span className="admin-doc-panel__title">
+              <FireOutlined style={{ color: '#D32F2F', marginRight: 8 }} />
+              Top tải xuống
+            </span>
+          </div>
+          <Table dataSource={hot} columns={columns} rowKey="id" pagination={false} size="middle" loading={loading} />
+        </div>
+        <div className="admin-doc-panel">
+          <div className="admin-doc-panel__toolbar">
+            <span className="admin-doc-panel__title">
+              <ClockCircleOutlined style={{ color: '#D32F2F', marginRight: 8 }} />
+              Tài liệu mới nhất
+            </span>
+          </div>
+          <Table dataSource={recent} columns={columns} rowKey="id" pagination={false} size="middle" loading={loading} />
+        </div>
+      </div>
     </div>
   );
 };

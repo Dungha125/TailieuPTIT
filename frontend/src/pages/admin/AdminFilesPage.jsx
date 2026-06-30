@@ -1,27 +1,63 @@
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
+import { Button, Form, message } from 'antd';
 import {
-  Button,
-  Table,
-  Tag,
-  Modal,
-  Form,
-  Input,
-  Switch,
-  Select,
-  message,
-  Popconfirm,
-  Space,
-} from 'antd';
-import { EditOutlined, DeleteOutlined, EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
-import { useEffect, useState } from 'react';
+  FileTextOutlined,
+  DownloadOutlined,
+  FolderOutlined,
+  RiseOutlined,
+  PlusOutlined,
+  DeleteOutlined,
+} from '@ant-design/icons';
 import { adminApi, documentsApi } from '../../api';
-import { formatDate, formatFileSize } from '../../utils/helpers';
+import PageHeader from '../../components/admin/PageHeader';
+import StatCard from '../../components/admin/StatCard';
+import StatsSkeleton from '../../components/admin/StatsSkeleton';
+import DocumentFilters from '../../components/admin/DocumentFilters';
+import DocumentListTable from '../../components/admin/DocumentListTable';
+import EditDocumentModal from '../../components/admin/EditDocumentModal';
+import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
+
+const PAGE_SIZE = 15;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+const sortDocuments = (docs, sort) => {
+  const list = [...docs];
+  switch (sort) {
+    case 'date_asc':
+      return list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    case 'downloads_desc':
+      return list.sort((a, b) => b.download_count - a.download_count);
+    case 'size_desc':
+      return list.sort((a, b) => b.size - a.size);
+    default:
+      return list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  }
+};
 
 const AdminFilesPage = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [page, setPage] = useState(1);
   const [form] = Form.useForm();
+
+  const [filters, setFilters] = useState({
+    search: searchParams.get('search') || '',
+    tagId: null,
+    sort: 'date_desc',
+  });
+
+  useEffect(() => {
+    setFilters((prev) => ({ ...prev, search: searchParams.get('search') || '' }));
+    setPage(1);
+  }, [searchParams]);
 
   const fetchData = () => {
     setLoading(true);
@@ -37,6 +73,56 @@ const AdminFilesPage = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const stats = useMemo(() => {
+    const now = Date.now();
+    const newThisWeek = documents.filter(
+      (d) => now - new Date(d.created_at).getTime() < WEEK_MS
+    ).length;
+    return {
+      total: documents.length,
+      downloads: documents.reduce((sum, d) => sum + (d.download_count || 0), 0),
+      categories: tags.length,
+      newThisWeek,
+    };
+  }, [documents, tags]);
+
+  const filtered = useMemo(() => {
+    let result = documents;
+    const q = filters.search.trim().toLowerCase();
+    if (q) {
+      result = result.filter(
+        (d) =>
+          d.title?.toLowerCase().includes(q) ||
+          d.description?.toLowerCase().includes(q)
+      );
+    }
+    if (filters.tagId) {
+      result = result.filter((d) => d.tags?.some((t) => t.id === filters.tagId));
+    }
+    return sortDocuments(result, filters.sort);
+  }, [documents, filters]);
+
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, page]);
+
+  const handleFilterChange = (next) => {
+    setFilters(next);
+    setPage(1);
+    if (next.search) {
+      setSearchParams({ search: next.search });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const handleReset = () => {
+    setFilters({ search: '', tagId: null, sort: 'date_desc' });
+    setSearchParams({});
+    setPage(1);
+  };
 
   const handleEdit = (record) => {
     setEditing(record);
@@ -59,137 +145,113 @@ const AdminFilesPage = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
     try {
-      await adminApi.deleteDocument(id);
-      message.success('Xóa thành công');
+      if (deleteTarget?.bulk) {
+        await Promise.all(deleteTarget.ids.map((id) => adminApi.deleteDocument(id)));
+        message.success(`Đã xóa ${deleteTarget.ids.length} tài liệu`);
+        setSelectedRowKeys([]);
+      } else {
+        await adminApi.deleteDocument(deleteTarget.id);
+        message.success('Xóa thành công');
+      }
+      setDeleteTarget(null);
       fetchData();
     } catch (err) {
       message.error(err.response?.data?.detail || 'Xóa thất bại');
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const columns = [
-    { title: 'Tiêu đề', dataIndex: 'title', key: 'title', ellipsis: true },
-    {
-      title: 'Loại',
-      dataIndex: 'file_type',
-      key: 'file_type',
-      width: 80,
-      render: (v) => v?.toUpperCase(),
-    },
-    {
-      title: 'Kích thước',
-      dataIndex: 'size',
-      key: 'size',
-      width: 100,
-      render: (v) => formatFileSize(v),
-    },
-    {
-      title: 'Nhãn',
-      dataIndex: 'tags',
-      key: 'tags',
-      render: (tags) =>
-        tags?.map((t) => (
-          <Tag key={t.id} color="red">
-            {t.name}
-          </Tag>
-        )),
-    },
-    {
-      title: 'Trạng thái',
-      dataIndex: 'visibility',
-      key: 'visibility',
-      width: 100,
-      render: (v) =>
-        v ? (
-          <Tag icon={<EyeOutlined />} color="green">
-            Public
-          </Tag>
-        ) : (
-          <Tag icon={<EyeInvisibleOutlined />} color="default">
-            Private
-          </Tag>
-        ),
-    },
-    {
-      title: 'Lượt tải',
-      dataIndex: 'download_count',
-      key: 'download_count',
-      width: 80,
-    },
-    {
-      title: 'Ngày tạo',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 150,
-      render: (v) => formatDate(v),
-    },
-    {
-      title: 'Thao tác',
-      key: 'actions',
-      width: 120,
-      render: (_, record) => (
-        <Space>
-          <Button
-            type="text"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-          />
-          <Popconfirm
-            title="Xóa tài liệu này?"
-            onConfirm={() => handleDelete(record.id)}
-          >
-            <Button type="text" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
-    },
-  ];
+  const handleView = (record) => {
+    window.open(`/documents/${record.id}`, '_blank');
+  };
 
   return (
     <div>
-      <h1 className="page-title">Quản lý File</h1>
-      <p className="page-subtitle">Chỉnh sửa metadata, visibility và xóa tài liệu</p>
-
-      <Table
-        dataSource={documents}
-        columns={columns}
-        rowKey="id"
-        loading={loading}
-        pagination={{ pageSize: 15 }}
-        scroll={{ x: 1000 }}
+      <PageHeader
+        title="Quản lý tài liệu"
+        subtitle="Xem, chỉnh sửa và quản lý toàn bộ tài liệu hệ thống"
+        breadcrumbs={[{ label: 'Quản lý tài liệu' }]}
       />
 
-      <Modal
-        title="Chỉnh sửa tài liệu"
+      {loading ? (
+        <StatsSkeleton />
+      ) : (
+        <div className="admin-stats">
+          <StatCard icon={<FileTextOutlined />} label="Tổng tài liệu" value={stats.total} color="red" />
+          <StatCard icon={<DownloadOutlined />} label="Tổng lượt tải" value={stats.downloads} color="blue" />
+          <StatCard icon={<FolderOutlined />} label="Số danh mục" value={stats.categories} color="green" />
+          <StatCard
+            icon={<RiseOutlined />}
+            label="Mới tuần này"
+            value={stats.newThisWeek}
+            trend={stats.newThisWeek > 0 ? `+${stats.newThisWeek} tài liệu` : undefined}
+            color="orange"
+          />
+        </div>
+      )}
+
+      <DocumentFilters
+        tags={tags}
+        filters={filters}
+        onChange={handleFilterChange}
+        onReset={handleReset}
+      />
+
+      <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+        <Button
+          type="primary"
+          className="btn-gradient"
+          icon={<PlusOutlined />}
+          onClick={() => navigate('/internal-admin-portal/upload')}
+        >
+          Upload tài liệu
+        </Button>
+      </div>
+
+      <DocumentListTable
+        documents={paginated}
+        loading={loading}
+        selectedRowKeys={selectedRowKeys}
+        onSelectionChange={setSelectedRowKeys}
+        onEdit={handleEdit}
+        onDelete={(record) => setDeleteTarget({ id: record.id, title: record.title })}
+        onView={handleView}
+        pagination={{ current: page, pageSize: PAGE_SIZE, total: filtered.length }}
+        onPageChange={setPage}
+        bulkActions={
+          <Button
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() =>
+              setDeleteTarget({ bulk: true, ids: selectedRowKeys, title: '' })
+            }
+          >
+            Xóa đã chọn
+          </Button>
+        }
+      />
+
+      <EditDocumentModal
         open={!!editing}
+        document={editing}
+        tags={tags}
+        form={form}
         onCancel={() => setEditing(null)}
-        footer={null}
-      >
-        <Form form={form} layout="vertical" onFinish={handleUpdate}>
-          <Form.Item name="title" label="Tiêu đề" rules={[{ required: true }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item name="description" label="Mô tả">
-            <Input.TextArea rows={3} />
-          </Form.Item>
-          <Form.Item name="tag_ids" label="Nhãn">
-            <Select
-              mode="multiple"
-              options={tags.map((t) => ({ value: t.id, label: t.name }))}
-            />
-          </Form.Item>
-          <Form.Item name="visibility" label="Công khai" valuePropName="checked">
-            <Switch checkedChildren="Public" unCheckedChildren="Private" />
-          </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block>
-              Lưu thay đổi
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+        onSubmit={handleUpdate}
+      />
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        title={deleteTarget?.title}
+        count={deleteTarget?.bulk ? deleteTarget.ids.length : 1}
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };

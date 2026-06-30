@@ -1,17 +1,8 @@
-import {
-  Button,
-  Form,
-  Input,
-  Switch,
-  Select,
-  Upload,
-  message,
-  List,
-  Tag,
-} from 'antd';
-import { InboxOutlined, UploadOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Switch, Select, Upload, message, List, Tag, Progress } from 'antd';
+import { InboxOutlined, UploadOutlined, FileOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useState } from 'react';
 import { adminApi, documentsApi } from '../../api';
+import PageHeader from '../../components/admin/PageHeader';
 
 const { Dragger } = Upload;
 const MAX_SIZE_MB = 50;
@@ -23,6 +14,7 @@ const AdminUploadPage = () => {
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [results, setResults] = useState([]);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   useEffect(() => {
     documentsApi.tags().then((res) => setTags(res.data.items)).catch(console.error);
@@ -35,6 +27,7 @@ const AdminUploadPage = () => {
     }
 
     setUploading(true);
+    setUploadProgress(30);
     setResults([]);
 
     try {
@@ -47,7 +40,9 @@ const AdminUploadPage = () => {
         formData.append('tag_ids', values.tag_ids.join(','));
       }
 
+      setUploadProgress(60);
       const res = await adminApi.upload(formData);
+      setUploadProgress(100);
       setResults(res.data);
 
       const successCount = res.data.filter((r) => !r.duplicate).length;
@@ -62,6 +57,7 @@ const AdminUploadPage = () => {
       message.error(err.response?.data?.detail || 'Upload thất bại');
     } finally {
       setUploading(false);
+      setTimeout(() => setUploadProgress(0), 800);
     }
   };
 
@@ -81,81 +77,113 @@ const AdminUploadPage = () => {
     onChange: ({ fileList: newList }) => setFileList(newList),
     onDrop: () => setDragOver(false),
     accept: '.pdf,.doc,.docx,.zip,.jpg,.jpeg,.png,.gif,.webp',
+    showUploadList: false,
   };
 
   return (
     <div>
-      <h1 className="page-title">Upload tài liệu</h1>
-      <p className="page-subtitle">Kéo thả hoặc chọn nhiều file để upload</p>
+      <PageHeader
+        title="Upload tài liệu"
+        subtitle="Kéo thả hoặc chọn file để tải lên hệ thống"
+        breadcrumbs={[
+          { label: 'Quản lý tài liệu', path: '/internal-admin-portal/files' },
+          { label: 'Upload' },
+        ]}
+      />
 
       <Form form={form} layout="vertical" onFinish={handleUpload} initialValues={{ visibility: true }}>
         <div
-          className={`upload-dropzone ${dragOver ? 'drag-over' : ''}`}
+          className={`upload-zone ${dragOver ? 'upload-zone--drag' : ''}`}
           onDragOver={(e) => {
             e.preventDefault();
             setDragOver(true);
           }}
           onDragLeave={() => setDragOver(false)}
         >
-          <Dragger {...uploadProps} style={{ border: 'none', background: 'transparent' }}>
-            <p className="upload-icon">
+          <Dragger {...uploadProps} style={{ border: 'none', background: 'transparent', padding: 0 }}>
+            <div className="upload-zone__icon">
               <InboxOutlined />
-            </p>
-            <p style={{ fontSize: 16 }}>Kéo thả file vào đây hoặc click để chọn</p>
-            <p style={{ color: '#999' }}>
-              Hỗ trợ: PDF, DOCX, ZIP, JPG, PNG (tối đa {MAX_SIZE_MB}MB/file)
-            </p>
+            </div>
+            <div className="upload-zone__title">Kéo thả file vào đây</div>
+            <div className="upload-zone__hint">
+              hoặc click để chọn · PDF, DOCX, ZIP, JPG, PNG (tối đa {MAX_SIZE_MB}MB/file)
+            </div>
           </Dragger>
         </div>
 
-        <Form.Item name="title" label="Tiêu đề (tùy chọn)" style={{ marginTop: 24 }}>
-          <Input placeholder="Để trống sẽ dùng tên file" />
-        </Form.Item>
+        {fileList.length > 0 && (
+          <div className="upload-form-card" style={{ marginTop: 16 }}>
+            <div style={{ fontWeight: 600, marginBottom: 12 }}>
+              <FileOutlined style={{ marginRight: 8, color: '#D32F2F' }} />
+              {fileList.length} file đã chọn
+            </div>
+            <List
+              size="small"
+              dataSource={fileList}
+              renderItem={(f) => (
+                <List.Item>
+                  {f.name}
+                  <Tag>{((f.size || 0) / 1024 / 1024).toFixed(2)} MB</Tag>
+                </List.Item>
+              )}
+            />
+          </div>
+        )}
 
-        <Form.Item name="description" label="Mô tả">
-          <Input.TextArea rows={3} placeholder="Mô tả tài liệu..." />
-        </Form.Item>
+        <div className="upload-form-card">
+          <Form.Item name="title" label="Tiêu đề">
+            <Input size="large" placeholder="Để trống sẽ dùng tên file" />
+          </Form.Item>
+          <Form.Item name="description" label="Mô tả">
+            <Input.TextArea rows={3} placeholder="Mô tả tài liệu..." />
+          </Form.Item>
+          <Form.Item name="tag_ids" label="Danh mục / Tags">
+            <Select
+              mode="multiple"
+              size="large"
+              placeholder="Chọn tags (để trống = Chưa phân loại)"
+              options={tags
+                .filter((t) => t.name !== 'Chưa phân loại')
+                .map((t) => ({ value: t.id, label: t.name }))}
+            />
+          </Form.Item>
+          <Form.Item name="visibility" label="Công khai" valuePropName="checked">
+            <Switch checkedChildren="Public" unCheckedChildren="Private" />
+          </Form.Item>
 
-        <Form.Item name="tag_ids" label="Nhãn">
-          <Select
-            mode="multiple"
-            placeholder="Chọn nhãn (để trống = Chưa phân loại)"
-            options={tags
-              .filter((t) => t.name !== 'Chưa phân loại')
-              .map((t) => ({ value: t.id, label: t.name }))}
-          />
-        </Form.Item>
+          {uploading && uploadProgress > 0 && (
+            <Progress percent={uploadProgress} strokeColor={{ from: '#D32F2F', to: '#B71C1C' }} style={{ marginBottom: 16 }} />
+          )}
 
-        <Form.Item name="visibility" label="Công khai" valuePropName="checked">
-          <Switch checkedChildren="Public" unCheckedChildren="Private" />
-        </Form.Item>
-
-        <Form.Item>
           <Button
             type="primary"
             htmlType="submit"
             loading={uploading}
             icon={<UploadOutlined />}
             size="large"
+            block
+            className="btn-gradient"
           >
             Upload {fileList.length > 0 ? `(${fileList.length} file)` : ''}
           </Button>
-        </Form.Item>
+        </div>
       </Form>
 
       {results.length > 0 && (
-        <List
-          header="Kết quả upload"
-          bordered
-          dataSource={results}
-          renderItem={(item) => (
-            <List.Item>
-              <span>{item.title}</span>
-              <Tag color={item.duplicate ? 'orange' : 'green'}>{item.message}</Tag>
-            </List.Item>
-          )}
-          style={{ marginTop: 24 }}
-        />
+        <div className="upload-form-card">
+          <div style={{ fontWeight: 600, marginBottom: 12 }}>Kết quả upload</div>
+          <List
+            dataSource={results}
+            renderItem={(item) => (
+              <List.Item>
+                <span>{item.title}</span>
+                <Tag color={item.duplicate ? 'orange' : 'green'} style={{ borderRadius: 12 }}>
+                  {item.message}
+                </Tag>
+              </List.Item>
+            )}
+          />
+        </div>
       )}
     </div>
   );

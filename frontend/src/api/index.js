@@ -61,6 +61,7 @@ export const adminApi = {
     }),
   createTag: (name) => api.post('/admin/tags', { name }),
   listDocuments: () => api.get('/admin/documents'),
+  getStorage: () => api.get('/admin/storage'),
   updateDocument: (id, data) => api.put(`/admin/documents/${id}`, data),
   deleteDocument: (id) => api.delete(`/admin/documents/${id}`),
 };

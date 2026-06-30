@@ -1,0 +1,670 @@
+// Admin Dashboard — Modern SaaS theme
+$red-primary: #d32f2f;
+$red-dark: #b71c1c;
+$red-light: #ffebee;
+$bg-page: #f8f9fa;
+$bg-white: #ffffff;
+$text-primary: #1a1a2e;
+$text-secondary: #6b7280;
+$border: #e5e7eb;
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+$shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
+$shadow-lg: 0 8px 32px rgba(211, 47, 47, 0.12);
+$radius-lg: 16px;
+$radius-md: 12px;
+$sidebar-width: 260px;
+
+.admin-shell {
+  display: flex;
+  min-height: 100vh;
+  background: $bg-page;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+// ─── Sidebar ───
+.admin-sidebar {
+  width: $sidebar-width;
+  background: $bg-white;
+  border-right: 1px solid $border;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 200;
+  transition: transform 0.3s ease;
+
+  &__brand {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid $border;
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: $red-primary;
+      margin: 0;
+      line-height: 1.3;
+    }
+
+    span {
+      font-size: 0.72rem;
+      color: $text-secondary;
+      font-weight: 500;
+    }
+  }
+
+  &__nav {
+    flex: 1;
+    padding: 12px 10px;
+    overflow-y: auto;
+  }
+
+  &__link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border-radius: $radius-md;
+    color: $text-secondary;
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-decoration: none;
+    margin-bottom: 4px;
+    transition: all 0.2s ease;
+
+    .anticon {
+      font-size: 1.1rem;
+    }
+
+    &:hover {
+      background: $red-light;
+      color: $red-primary;
+    }
+
+    &--active {
+      background: linear-gradient(135deg, $red-primary, $red-dark);
+      color: #fff !important;
+      box-shadow: $shadow-lg;
+
+      &:hover {
+        background: linear-gradient(135deg, $red-dark, #8b0000);
+        color: #fff;
+      }
+    }
+  }
+
+  &__footer {
+    padding: 16px;
+    border-top: 1px solid $border;
+  }
+
+  @media (max-width: 992px) {
+    transform: translateX(-100%);
+
+    &--open {
+      transform: translateX(0);
+      box-shadow: $shadow-lg;
+    }
+  }
+}
+
+// ─── Main area ───
+.admin-main {
+  flex: 1;
+  margin-left: $sidebar-width;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  @media (max-width: 992px) {
+    margin-left: 0;
+  }
+}
+
+// ─── Topbar ───
+.admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: $bg-white;
+  border-bottom: 1px solid $border;
+  box-shadow: $shadow-sm;
+  padding: 0 24px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+
+  &__menu-btn {
+    display: none;
+    @media (max-width: 992px) {
+      display: flex;
+    }
+  }
+
+  &__search {
+    flex: 1;
+    max-width: 480px;
+
+    .ant-input-affix-wrapper,
+    .ant-input-search .ant-input {
+      border-radius: $radius-md !important;
+      border-color: $border;
+
+      &:hover,
+      &:focus,
+      &.ant-input-affix-wrapper-focused {
+        border-color: $red-primary !important;
+        box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.1) !important;
+      }
+    }
+
+    .ant-input-search-button {
+      background: linear-gradient(135deg, $red-primary, $red-dark) !important;
+      border: none !important;
+      border-radius: 0 $radius-md $radius-md 0 !important;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  &__icon-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid $border;
+    background: $bg-white;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: $text-secondary;
+
+    &:hover {
+      border-color: $red-primary;
+      color: $red-primary;
+      background: $red-light;
+    }
+  }
+
+  &__avatar {
+    cursor: pointer;
+    border: 2px solid $red-light;
+    transition: border-color 0.2s;
+
+    &:hover {
+      border-color: $red-primary;
+    }
+  }
+}
+
+// ─── Content ───
+.admin-content {
+  padding: 24px;
+  flex: 1;
+
+  @media (max-width: 576px) {
+    padding: 16px;
+  }
+}
+
+// ─── Page header ───
+.admin-page-header {
+  margin-bottom: 24px;
+
+  &__breadcrumb {
+    margin-bottom: 8px;
+
+    .ant-breadcrumb-link {
+      color: $text-secondary;
+    }
+  }
+
+  h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: $text-primary;
+    margin: 0 0 4px;
+  }
+
+  p {
+    color: $text-secondary;
+    margin: 0;
+    font-size: 0.9rem;
+  }
+}
+
+// ─── Stat cards ───
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+
+  @media (max-width: 1200px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @media (max-width: 576px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.admin-shell .stat-card {
+  background: $bg-white;
+  border-radius: $radius-lg;
+  padding: 20px 24px;
+  box-shadow: $shadow-sm;
+  border: 1px solid $border;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  transition: all 0.25s ease;
+  cursor: default;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: $shadow-md;
+    border-color: rgba(211, 47, 47, 0.2);
+  }
+
+  &__icon {
+    width: 52px;
+    height: 52px;
+    border-radius: $radius-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+
+  &__icon--red {
+    background: $red-light;
+    color: $red-primary;
+  }
+
+  &__icon--blue {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
+
+  &__icon--green {
+    background: #e8f5e9;
+    color: #388e3c;
+  }
+
+  &__icon--orange {
+    background: #fff3e0;
+    color: #f57c00;
+  }
+
+  &__label {
+    font-size: 0.8rem;
+    color: $text-secondary;
+    font-weight: 500;
+    margin-bottom: 4px;
+  }
+
+  &__value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $text-primary;
+    line-height: 1.2;
+  }
+
+  &__trend {
+    font-size: 0.75rem;
+    color: #388e3c;
+    margin-top: 4px;
+  }
+}
+
+// ─── Filter bar ───
+.admin-filter-bar {
+  background: $bg-white;
+  border-radius: $radius-lg;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  border: 1px solid $border;
+  box-shadow: $shadow-sm;
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .ant-input,
+  .ant-select-selector {
+    border-radius: $radius-md !important;
+    min-height: 40px !important;
+
+    &:hover,
+    &:focus {
+      border-color: $red-primary !important;
+    }
+  }
+
+  .ant-select-focused .ant-select-selector {
+    border-color: $red-primary !important;
+    box-shadow: 0 0 0 2px rgba(211, 47, 47, 0.1) !important;
+  }
+
+  &__search {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  &__select {
+    min-width: 160px;
+  }
+}
+
+// ─── Document table ───
+.admin-doc-panel {
+  background: $bg-white;
+  border-radius: $radius-lg;
+  border: 1px solid $border;
+  box-shadow: $shadow-sm;
+  overflow: hidden;
+
+  &__toolbar {
+    padding: 16px 20px;
+    border-bottom: 1px solid $border;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  &__title {
+    font-weight: 600;
+    font-size: 1rem;
+    color: $text-primary;
+  }
+
+  .ant-table {
+    .ant-table-thead > tr > th {
+      background: #fafafa;
+      font-weight: 600;
+      font-size: 0.8rem;
+      color: $text-secondary;
+      border-bottom: 1px solid $border;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .ant-table-tbody > tr {
+      transition: background 0.15s;
+
+      &:hover > td {
+        background: #fff5f5 !important;
+      }
+
+      &:nth-child(even) > td {
+        background: #fafafa;
+      }
+    }
+  }
+}
+
+.doc-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid $border;
+  background: $bg-page;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  color: $red-primary;
+  overflow: hidden;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.doc-title-cell {
+  &__name {
+    font-weight: 600;
+    color: $text-primary;
+    font-size: 0.9rem;
+    margin-bottom: 2px;
+  }
+
+  &__desc {
+    font-size: 0.75rem;
+    color: $text-secondary;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 280px;
+  }
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &--public {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+
+  &--private {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+}
+
+.action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid $border;
+  background: $bg-white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: $text-secondary;
+
+  &:hover {
+    border-color: $red-primary;
+    color: $red-primary;
+    background: $red-light;
+  }
+
+  &--danger:hover {
+    border-color: #ef5350;
+    color: #c62828;
+    background: #ffebee;
+  }
+}
+
+// ─── Upload zone ───
+.upload-zone {
+  background: linear-gradient(135deg, rgba(255, 235, 238, 0.5), rgba(255, 255, 255, 0.9));
+  border: 2px dashed rgba(211, 47, 47, 0.35);
+  border-radius: $radius-lg;
+  padding: 48px 24px;
+  text-align: center;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(4px);
+
+  &:hover,
+  &--drag {
+    border-color: $red-primary;
+    background: linear-gradient(135deg, rgba(255, 235, 238, 0.8), rgba(255, 255, 255, 0.95));
+    box-shadow: $shadow-lg;
+  }
+
+  &__icon {
+    font-size: 3rem;
+    color: $red-primary;
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8px;
+  }
+
+  &__hint {
+    color: $text-secondary;
+    font-size: 0.85rem;
+  }
+}
+
+.upload-form-card {
+  background: $bg-white;
+  border-radius: $radius-lg;
+  border: 1px solid $border;
+  padding: 24px;
+  box-shadow: $shadow-sm;
+  margin-top: 20px;
+}
+
+.btn-gradient {
+  background: linear-gradient(135deg, $red-primary, $red-dark) !important;
+  border: none !important;
+  border-radius: $radius-md !important;
+  font-weight: 600 !important;
+  height: 44px !important;
+  box-shadow: 0 4px 12px rgba(211, 47, 47, 0.3) !important;
+  transition: all 0.2s !important;
+
+  &:hover {
+    background: linear-gradient(135deg, $red-dark, #8b0000) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(211, 47, 47, 0.4) !important;
+  }
+}
+
+.btn-outline-red {
+  border: 1.5px solid $red-primary !important;
+  color: $red-primary !important;
+  background: $bg-white !important;
+  border-radius: $radius-md !important;
+  font-weight: 600 !important;
+  height: 40px !important;
+
+  &:hover {
+    background: $red-light !important;
+    color: $red-dark !important;
+  }
+}
+
+// ─── Empty state ───
+.admin-empty {
+  text-align: center;
+  padding: 64px 24px;
+
+  &__icon {
+    font-size: 4rem;
+    color: #e0e0e0;
+    margin-bottom: 16px;
+  }
+
+  h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $text-primary;
+    margin-bottom: 8px;
+  }
+
+  p {
+    color: $text-secondary;
+    margin-bottom: 20px;
+  }
+}
+
+// ─── Tags page ───
+.admin-tags-panel {
+  background: $bg-white;
+  border-radius: $radius-lg;
+  border: 1px solid $border;
+  padding: 24px;
+  box-shadow: $shadow-sm;
+}
+
+// ─── Login ───
+.admin-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, $red-dark 0%, $red-primary 50%, #ef5350 100%);
+  font-family: 'Inter', sans-serif;
+
+  .login-card {
+    width: 420px;
+    max-width: 92vw;
+    border-radius: $radius-lg;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    border: none;
+
+    .ant-card-head-title {
+      color: $red-primary;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+  }
+}
+
+// ─── Storage bar in sidebar ───
+.admin-sidebar .admin-storage-bar {
+  background: $red-light;
+  border-radius: $radius-md;
+  color: $text-primary;
+
+  &__header span {
+    color: $red-dark;
+    font-weight: 600;
+  }
+
+  .ant-typography {
+    color: $text-secondary !important;
+  }
+
+  .ant-progress-inner {
+    background: rgba(211, 47, 47, 0.15);
+  }
+}
+
+// ─── Overlay mobile ───
+.admin-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 199;
+
+  &--visible {
+    display: block;
+  }
+}

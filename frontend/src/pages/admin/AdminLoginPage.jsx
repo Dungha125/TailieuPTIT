@@ -3,6 +3,7 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../api';
+import '../../styles/admin.scss';
 
 const AdminLoginPage = () => {
   const [loading, setLoading] = useState(false);
@@ -23,21 +24,8 @@ const AdminLoginPage = () => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'linear-gradient(135deg, #C62828 0%, #EF5350 100%)',
-      }}
-    >
-      <Card
-        title={
-          <span style={{ color: '#C62828', fontWeight: 700 }}>TailieuPTIT Admin</span>
-        }
-        style={{ width: 400, boxShadow: '0 4px 24px rgba(0,0,0,0.15)' }}
-      >
+    <div className="admin-login-page">
+      <Card className="login-card" title="TailieuPTIT Admin">
         <Form onFinish={onFinish} layout="vertical" size="large">
           <Form.Item
             name="username"
@@ -52,7 +40,7 @@ const AdminLoginPage = () => {
             <Input.Password prefix={<LockOutlined />} placeholder="Mật khẩu" />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>
+            <Button type="primary" htmlType="submit" loading={loading} block className="btn-gradient">
               Đăng nhập
             </Button>
           </Form.Item>

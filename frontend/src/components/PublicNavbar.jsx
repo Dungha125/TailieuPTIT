@@ -1,40 +1,40 @@
-import { Layout, Menu, Button, theme } from 'antd';
+import { Layout, Menu, Input, Button } from 'antd';
 import {
   HomeOutlined,
   FileTextOutlined,
   SearchOutlined,
+  CodeOutlined,
 } from '@ant-design/icons';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 
 const { Header } = Layout;
+const { Search } = Input;
 
 const PublicNavbar = () => {
   const location = useLocation();
-  const { token } = theme.useToken();
+  const navigate = useNavigate();
+  const [query, setQuery] = useState('');
 
   const items = [
     { key: '/', icon: <HomeOutlined />, label: <Link to="/">Trang chủ</Link> },
     { key: '/documents', icon: <FileTextOutlined />, label: <Link to="/documents">Tài liệu</Link> },
-    { key: '/search', icon: <SearchOutlined />, label: <Link to="/search">Tìm kiếm</Link> },
   ];
 
-  const selectedKey = items.find((item) => location.pathname === item.key)?.key || '/';
+  const selectedKey =
+    items.find((item) => location.pathname === item.key)?.key ||
+    (location.pathname.startsWith('/search') ? '/search' : '/');
+
+  const handleSearch = (value) => {
+    const q = (value || query).trim();
+    if (!q) return;
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
 
   return (
-    <Header
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        background: token.colorPrimary,
-        padding: '0 24px',
-        position: 'sticky',
-        top: 0,
-        zIndex: 100,
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
-        <Link to="/" style={{ color: '#fff', fontWeight: 700, fontSize: '1.25rem' }}>
+    <Header className="public-navbar">
+      <div className="public-navbar__left">
+        <Link to="/" className="public-navbar__brand">
           TailieuPTIT
         </Link>
         <Menu
@@ -42,8 +42,31 @@ const PublicNavbar = () => {
           mode="horizontal"
           selectedKeys={[selectedKey]}
           items={items}
-          style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none' }}
+          className="public-navbar__menu"
         />
+      </div>
+      <div className="public-navbar__right">
+        <a
+          href="https://code.ptit.edu.vn/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="public-navbar__practice-link"
+        >
+          <Button type="default" ghost icon={<CodeOutlined />} className="public-navbar__practice-btn">
+            Luyện tập
+          </Button>
+        </a>
+        <div className="public-navbar__search">
+          <Search
+            placeholder="Tìm kiếm tài liệu..."
+            allowClear
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onSearch={handleSearch}
+            enterButton={<SearchOutlined />}
+            size="middle"
+          />
+        </div>
       </div>
     </Header>
   );
