@@ -1,5 +1,10 @@
 import axios from 'axios';
 import { idempotencyKey, validateCurrentDomain } from '../utils/security';
+import {
+  encryptPayload,
+  isPayloadEncryptionEnabled,
+  parseEncryptedResponse,
+} from '../utils/payloadCrypto';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
@@ -7,13 +12,16 @@ const api = axios.create({
   baseURL: API_URL,
   timeout: 60000,
   headers: { 'Content-Type': 'application/json' },
+  transformResponse: [(data) => data],
 });
 
 if (import.meta.env.PROD) {
   validateCurrentDomain();
 }
 
-api.interceptors.request.use((config) => {
+const isFormData = (value) => typeof FormData !== 'undefined' && value instanceof FormData;
+
+api.interceptors.request.use(async (config) => {
   const token = localStorage.getItem('admin_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -21,39 +29,64 @@ api.interceptors.request.use((config) => {
 
   config.headers['X-Request-Id'] = idempotencyKey('rid');
 
-  if (['post', 'put', 'delete'].includes(config.method)) {
+  if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
     config.headers['X-Idempotency-Key'] = idempotencyKey('idem');
+  }
+
+  if (
+    isPayloadEncryptionEnabled() &&
+    config.data &&
+    !isFormData(config.data) &&
+    ['post', 'put', 'patch'].includes(config.method)
+  ) {
+    const encrypted = await encryptPayload(config.data);
+    config.data = encrypted;
+    config.headers['Content-Type'] = 'text/plain; charset=utf-8';
+    config.headers['X-Encrypted'] = '1';
   }
 
   return config;
 });
 
-api.interceptors.response.use(
-  (res) => res,
-  (error) => {
-    const status = error.response?.status;
-
-    if (status === 401) {
-      localStorage.removeItem('admin_token');
-      if (window.location.pathname.startsWith('/internal-admin-portal')) {
-        window.location.href = '/internal-admin-portal/login';
-      }
+api.interceptors.response.use(async (res) => {
+  if (res.headers['x-encrypted'] === '1' && res.data) {
+    try {
+      res.data = await parseEncryptedResponse(res.data);
+    } catch (e) {
+      console.error('Failed to decrypt API response');
+      throw e;
     }
-
-    if (status === 429) {
-      const retryAfter = error.response?.headers?.['retry-after'];
-      error.message = retryAfter
-        ? `Quá nhiều yêu cầu. Thử lại sau ${retryAfter}s.`
-        : 'Quá nhiều yêu cầu. Vui lòng chờ và thử lại.';
+  } else if (typeof res.data === 'string' && res.data.startsWith('{')) {
+    try {
+      res.data = JSON.parse(res.data);
+    } catch {
+      /* keep as string */
     }
-
-    if (status === 403 && error.response?.data?.detail?.includes('blocked')) {
-      error.message = 'Truy cập tạm thời bị chặn do hoạt động bất thường.';
-    }
-
-    return Promise.reject(error);
   }
-);
+  return res;
+}, (error) => {
+  const status = error.response?.status;
+
+  if (status === 401) {
+    localStorage.removeItem('admin_token');
+    if (window.location.pathname.startsWith('/internal-admin-portal')) {
+      window.location.href = '/internal-admin-portal/login';
+    }
+  }
+
+  if (status === 429) {
+    const retryAfter = error.response?.headers?.['retry-after'];
+    error.message = retryAfter
+      ? `Quá nhiều yêu cầu. Thử lại sau ${retryAfter}s.`
+      : 'Quá nhiều yêu cầu. Vui lòng chờ và thử lại.';
+  }
+
+  if (status === 403 && error.response?.data?.detail?.includes('blocked')) {
+    error.message = 'Truy cập tạm thời bị chặn do hoạt động bất thường.';
+  }
+
+  return Promise.reject(error);
+});
 
 export default api;
 
@@ -73,8 +106,16 @@ export const documentsApi = {
   unclassified: (page = 1, pageSize = 20) =>
     api.get('/documents/unclassified', { params: { page, page_size: pageSize } }),
   get: (id) => api.get(`/documents/${id}`),
-  download: (id) => api.get(`/documents/download/${id}`, { responseType: 'blob' }),
-  previewStream: (id) => api.get(`/documents/preview/${id}/stream`, { responseType: 'blob' }),
+  download: (id) =>
+    api.get(`/documents/download/${id}`, {
+      responseType: 'blob',
+      transformResponse: [(data) => data],
+    }),
+  previewStream: (id) =>
+    api.get(`/documents/preview/${id}/stream`, {
+      responseType: 'blob',
+      transformResponse: [(data) => data],
+    }),
   previewStreamUrl: (id) => `${API_URL}/documents/preview/${id}/stream`,
   preview: (id) => api.get(`/documents/preview/${id}`),
   tags: () => api.get('/documents/tags/all'),
