@@ -1,8 +1,15 @@
+from urllib.parse import quote_plus
+
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "postgresql://tailieuptit:tailieuptit_secret@localhost:5432/tailieuptit"
+    database_url: str | None = None
+    postgres_user: str = "tailieuptit"
+    postgres_password: str = "tailieuptit_secret"
+    postgres_db: str = "tailieuptit"
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
     redis_url: str = "redis://localhost:6379/0"
     minio_endpoint: str = "localhost:9000"
     minio_access_key: str = "minioadmin"
@@ -29,6 +36,17 @@ class Settings(BaseSettings):
     class Config:
         env_file = ".env"
         case_sensitive = False
+
+    @property
+    def sqlalchemy_database_url(self) -> str:
+        if self.database_url:
+            return self.database_url
+        user = quote_plus(self.postgres_user)
+        password = quote_plus(self.postgres_password)
+        return (
+            f"postgresql://{user}:{password}@{self.postgres_host}:"
+            f"{self.postgres_port}/{self.postgres_db}"
+        )
 
     @property
     def cors_origins_list(self) -> list[str]:

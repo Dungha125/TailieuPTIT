@@ -256,13 +256,43 @@ a {
     max-width: 100%;
     max-height: 70vh;
     object-fit: contain;
+    display: block;
+    margin: 0 auto;
   }
+}
 
-  .preview-pdf {
-    width: 100%;
-    height: 70vh;
-    border: none;
+.pdf-light-preview {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.pdf-preview-note {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+}
+
+.pdf-preview-page {
+  margin-bottom: 16px;
+  text-align: center;
+  background: #f5f5f5;
+  border-radius: 6px;
+  padding: 8px;
+
+  img {
+    max-width: 100%;
+    height: auto;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
   }
+}
+
+.pdf-preview-page-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #888;
+  margin-bottom: 6px;
 }
 
 .empty-state {

@@ -1,0 +1,4 @@
+# Thay api.tailieuptit.example.com bằng subdomain thật của bạn
+api.tailieuptit.example.com {
+    reverse_proxy 127.0.0.1:8000
+}

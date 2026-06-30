@@ -46,6 +46,8 @@ export const documentsApi = {
     api.get('/documents/unclassified', { params: { page, page_size: pageSize } }),
   get: (id) => api.get(`/documents/${id}`),
   download: (id) => api.get(`/documents/download/${id}`, { responseType: 'blob' }),
+  previewStream: (id) => api.get(`/documents/preview/${id}/stream`, { responseType: 'blob' }),
+  previewStreamUrl: (id) => `${API_URL}/documents/preview/${id}/stream`,
   preview: (id) => api.get(`/documents/preview/${id}`),
   tags: () => api.get('/documents/tags/all'),
   hot: () => api.get('/documents/hot'),

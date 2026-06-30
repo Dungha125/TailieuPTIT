@@ -1,6 +1,7 @@
 version: "3.9"
 
-# Production: docker compose -f docker-compose.prod.yml --env-file .env up -d --build
+# VPS only (Frontend trên Vercel): Backend + Postgres + Redis + MinIO
+# Chạy: docker compose -f docker-compose.vps.yml --env-file .env up -d --build
 
 services:
   postgres:
@@ -73,6 +74,9 @@ services:
       MAX_FILE_SIZE_MB: "50"
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    ports:
+      # Chỉ bind localhost — Caddy/Nginx trên host sẽ proxy HTTPS vào đây
+      - "127.0.0.1:8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
@@ -82,21 +86,6 @@ services:
         condition: service_started
     networks:
       - internal
-      - web
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_URL: /api
-    container_name: tailieuptit-frontend
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    depends_on:
-      - backend
-    networks:
       - web
 
 volumes:

@@ -51,7 +51,11 @@ services:
       dockerfile: Dockerfile
     container_name: tailieuptit-backend
     environment:
-      DATABASE_URL: postgresql://tailieuptit:tailieuptit_secret@postgres:5432/tailieuptit
+      POSTGRES_USER: tailieuptit
+      POSTGRES_PASSWORD: tailieuptit_secret
+      POSTGRES_DB: tailieuptit
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: "5432"
       REDIS_URL: redis://redis:6379/0
       MINIO_ENDPOINT: minio:9000
       MINIO_ACCESS_KEY: minioadmin

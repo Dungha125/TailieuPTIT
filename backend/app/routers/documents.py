@@ -196,14 +196,34 @@ def download_document(
     )
 
 
+@router.get("/preview/{doc_id}/stream")
+def preview_stream(doc_id: int, db: Session = Depends(get_db)):
+    doc = get_documents_query(db).filter(Document.id == doc_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
+
+    data, content_type = minio_service.get_file(doc.bucket_name, doc.object_name)
+    filename = doc.object_name.rsplit("/", 1)[-1]
+    if "_" in filename:
+        filename = filename.split("_", 1)[1]
+
+    return StreamingResponse(
+        io.BytesIO(data),
+        media_type=content_type or "application/octet-stream",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
 @router.get("/preview/{doc_id}")
 def preview_document(doc_id: int, db: Session = Depends(get_db)):
     doc = get_documents_query(db).filter(Document.id == doc_id).first()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    url = minio_service.get_presigned_url(doc.bucket_name, doc.object_name)
-    return {"preview_url": url, "file_type": doc.file_type}
+    return {
+        "preview_url": f"/documents/preview/{doc_id}/stream",
+        "file_type": doc.file_type,
+    }
 
 
 @router.get("/{doc_id}", response_model=DocumentResponse)
