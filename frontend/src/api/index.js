@@ -202,6 +202,8 @@ export const adminApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   createTag: (name) => api.post('/admin/tags', { name }),
+  updateTag: (id, name) => api.put(`/admin/tags/${id}`, { name }),
+  deleteTag: (id) => api.delete(`/admin/tags/${id}`),
   listDocuments: () => api.get('/admin/documents'),
   getStorage: () => api.get('/admin/storage'),
   updateDocument: (id, data) => api.put(`/admin/documents/${id}`, data),

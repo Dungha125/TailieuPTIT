@@ -1,15 +1,23 @@
-import { Button, Form, Input, Table, Tag, message } from 'antd';
-import { PlusOutlined, FolderOutlined } from '@ant-design/icons';
+import { Button, Form, Input, Modal, Table, Tag, Tooltip, message } from 'antd';
+import { PlusOutlined, FolderOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { adminApi, documentsApi } from '../../api';
 import PageHeader from '../../components/admin/PageHeader';
 import StatCard from '../../components/admin/StatCard';
+import ConfirmDeleteModal from '../../components/admin/ConfirmDeleteModal';
+
+const UNCLASSIFIED = 'Chưa phân loại';
 
 const AdminTagsPage = () => {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [form] = Form.useForm();
+  const [editForm] = Form.useForm();
 
   const fetchTags = () => {
     setLoading(true);
@@ -38,6 +46,39 @@ const AdminTagsPage = () => {
     }
   };
 
+  const openEdit = (record) => {
+    setEditing(record);
+    editForm.setFieldsValue({ name: record.name });
+  };
+
+  const handleUpdate = async (values) => {
+    setSaving(true);
+    try {
+      await adminApi.updateTag(editing.id, values.name);
+      message.success('Cập nhật danh mục thành công');
+      setEditing(null);
+      fetchTags();
+    } catch (err) {
+      message.error(err.response?.data?.detail || 'Cập nhật danh mục thất bại');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      await adminApi.deleteTag(deleteTarget.id);
+      message.success('Xóa danh mục thành công');
+      setDeleteTarget(null);
+      fetchTags();
+    } catch (err) {
+      message.error(err.response?.data?.detail || 'Xóa danh mục thất bại');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
     {
@@ -49,6 +90,32 @@ const AdminTagsPage = () => {
           {name}
         </Tag>
       ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 100,
+      render: (_, record) => {
+        if (record.name === UNCLASSIFIED) return null;
+        return (
+          <div style={{ display: 'flex', gap: 6 }}>
+            <Tooltip title="Sửa">
+              <button type="button" className="action-btn" onClick={() => openEdit(record)}>
+                <EditOutlined />
+              </button>
+            </Tooltip>
+            <Tooltip title="Xóa">
+              <button
+                type="button"
+                className="action-btn action-btn--danger"
+                onClick={() => setDeleteTarget(record)}
+              >
+                <DeleteOutlined />
+              </button>
+            </Tooltip>
+          </div>
+        );
+      },
     },
   ];
 
@@ -91,6 +158,36 @@ const AdminTagsPage = () => {
           pagination={{ pageSize: 20, showTotal: (t) => `${t} danh mục` }}
         />
       </div>
+
+      <Modal
+        title="Sửa danh mục"
+        open={!!editing}
+        onCancel={() => setEditing(null)}
+        footer={null}
+        destroyOnClose
+        styles={{ content: { borderRadius: 16 } }}
+      >
+        <Form form={editForm} layout="vertical" onFinish={handleUpdate}>
+          <Form.Item
+            name="name"
+            label="Tên danh mục"
+            rules={[{ required: true, message: 'Nhập tên danh mục' }]}
+          >
+            <Input size="large" />
+          </Form.Item>
+          <Button type="primary" htmlType="submit" loading={saving} block size="large" className="btn-gradient">
+            Lưu thay đổi
+          </Button>
+        </Form>
+      </Modal>
+
+      <ConfirmDeleteModal
+        open={!!deleteTarget}
+        title={deleteTarget?.name}
+        loading={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 };
