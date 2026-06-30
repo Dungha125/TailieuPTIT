@@ -1,5 +1,6 @@
 import { Input, Select, Button } from 'antd';
 import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import { TAG_CATEGORIES, UNCLASSIFIED_TAG } from '../../utils/tagCategories';
 
 const SORT_OPTIONS = [
   { value: 'date_desc', label: 'Mới nhất' },
@@ -8,7 +9,23 @@ const SORT_OPTIONS = [
   { value: 'size_desc', label: 'Kích thước lớn' },
 ];
 
-const DocumentFilters = ({ tags, filters, onChange, onReset }) => (
+const DocumentFilters = ({ tags, filters, onChange, onReset }) => {
+  const tagOptions = TAG_CATEGORIES.map((cat) => ({
+    label: cat.label,
+    options: tags
+      .filter((t) => t.name !== UNCLASSIFIED_TAG && t.category === cat.value)
+      .map((t) => ({ value: t.id, label: t.name })),
+  })).filter((group) => group.options.length > 0);
+
+  const uncategorized = tags.filter((t) => t.name !== UNCLASSIFIED_TAG && !t.category);
+  if (uncategorized.length > 0) {
+    tagOptions.push({
+      label: 'Chưa phân nhóm',
+      options: uncategorized.map((t) => ({ value: t.id, label: t.name })),
+    });
+  }
+
+  return (
   <div className="admin-filter-bar">
     <div className="admin-filter-bar__row">
       <Input
@@ -27,7 +44,7 @@ const DocumentFilters = ({ tags, filters, onChange, onReset }) => (
         size="large"
         value={filters.tagId || undefined}
         onChange={(tagId) => onChange({ ...filters, tagId: tagId || null })}
-        options={tags.map((t) => ({ value: t.id, label: t.name }))}
+        options={tagOptions}
       />
       <Select
         className="admin-filter-bar__select"
@@ -42,7 +59,8 @@ const DocumentFilters = ({ tags, filters, onChange, onReset }) => (
       </Button>
     </div>
   </div>
-);
+  );
+};
 
 export default DocumentFilters;
 export { SORT_OPTIONS };

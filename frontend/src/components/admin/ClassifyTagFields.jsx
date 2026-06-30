@@ -1,45 +1,58 @@
 import { Form, Select } from 'antd';
 import { useMemo } from 'react';
+import { UNCLASSIFIED_TAG, filterTagsByCategory } from '../../utils/tagCategories';
 
-const UNCLASSIFIED = 'Chưa phân loại';
-
-export function useTagSelectOptions(tags) {
+function useCategoryOptions(tags, category) {
   return useMemo(
     () =>
-      (tags || [])
-        .filter((t) => t.name !== UNCLASSIFIED)
-        .map((t) => ({ value: t.name, label: t.name })),
-    [tags]
+      filterTagsByCategory(tags, category).map((t) => ({
+        value: t.name,
+        label: t.name,
+      })),
+    [tags, category]
   );
 }
 
 const ClassifyTagFields = ({ tags, size = 'large' }) => {
-  const options = useTagSelectOptions(tags);
-  const selectProps = {
+  const facultyOptions = useCategoryOptions(tags, 'faculty');
+  const subjectOptions = useCategoryOptions(tags, 'subject');
+  const typeOptions = useCategoryOptions(tags, 'type');
+  const yearOptions = useCategoryOptions(tags, 'year');
+
+  const baseProps = {
     size,
     allowClear: true,
     showSearch: true,
     optionFilterProp: 'label',
     placeholder: 'Chọn từ danh mục',
-    options,
   };
 
   return (
     <>
       <Form.Item name="faculty" label="Khoa / Viện">
-        <Select {...selectProps} />
+        <Select {...baseProps} options={facultyOptions} />
       </Form.Item>
       <Form.Item name="subject" label="Môn học">
-        <Select {...selectProps} />
+        <Select {...baseProps} options={subjectOptions} />
       </Form.Item>
       <Form.Item name="doc_type" label="Loại tài liệu">
-        <Select {...selectProps} />
+        <Select {...baseProps} options={typeOptions} />
       </Form.Item>
       <Form.Item name="year" label="Năm học">
-        <Select {...selectProps} />
+        <Select {...baseProps} options={yearOptions} />
       </Form.Item>
     </>
   );
 };
+
+export function useTagSelectOptions(tags) {
+  return useMemo(
+    () =>
+      (tags || [])
+        .filter((t) => t.name !== UNCLASSIFIED_TAG)
+        .map((t) => ({ value: t.name, label: t.name })),
+    [tags]
+  );
+}
 
 export default ClassifyTagFields;
