@@ -118,6 +118,12 @@ export const documentsApi = {
   unclassified: (page = 1, pageSize = 20) =>
     api.get('/documents/unclassified', { params: { page, page_size: pageSize } }),
   get: (id) => api.get(`/documents/${id}`),
+  getBySlug: (slug) => api.get(`/documents/by-slug/${slug}`),
+  byCategorySlug: (slug, page = 1, pageSize = 20) =>
+    api.get(`/documents/category/${encodeURIComponent(slug)}`, {
+      params: { page, page_size: pageSize },
+    }),
+  related: (id) => api.get(`/documents/${id}/related`),
   download: (id) => api.get(`/documents/download/${id}`, { responseType: 'blob' }),
   previewStream: (id) => api.get(`/documents/preview/${id}/stream`, { responseType: 'blob' }),
   previewStreamUrl: (id) => `${API_URL}/documents/preview/${id}/stream`,

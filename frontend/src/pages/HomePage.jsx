@@ -4,6 +4,9 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { documentsApi } from '../api';
 import DocumentCard from '../components/DocumentCard';
+import SeoHead from '../seo/SeoHead';
+import { PAGE_SEO, documentPath } from '../seo/seoConfig';
+import { websiteSchema } from '../seo/schema';
 
 const HomePage = () => {
   const [hot, setHot] = useState([]);
@@ -30,10 +33,18 @@ const HomePage = () => {
 
   return (
     <div>
+      <SeoHead
+        title={PAGE_SEO.home.title}
+        description={PAGE_SEO.home.description}
+        keywords={PAGE_SEO.home.keywords}
+        canonical={PAGE_SEO.home.path}
+        jsonLd={websiteSchema()}
+      />
+
       <section className="hero-section">
-        <h1>TailieuPTIT</h1>
+        <h1>TailieuPTIT — Tài liệu học tập PTIT</h1>
         <p style={{ fontSize: '1.1rem', marginBottom: 4 }}>Hệ thống quản lý tài liệu công khai</p>
-        <p style={{ opacity: 0.9 }}>Tra cứu, xem trước và tải xuống tài liệu miễn phí</p>
+        <p style={{ opacity: 0.9 }}>Tra cứu, xem trước và tải xuống đề thi, slide, giáo trình miễn phí</p>
         <Link to="/documents">
           <Button type="default" size="large" style={{ marginTop: 16 }}>
             <FileTextOutlined /> Xem tài liệu
@@ -50,7 +61,7 @@ const HomePage = () => {
         ) : (
           <div className="doc-grid">
             {hot.map((doc) => (
-              <Link key={doc.id} to={`/documents/${doc.id}`}>
+              <Link key={doc.id} to={documentPath(doc)}>
                 <DocumentCard document={doc} />
               </Link>
             ))}
@@ -67,7 +78,7 @@ const HomePage = () => {
         ) : (
           <div className="doc-grid">
             {recent.map((doc) => (
-              <Link key={doc.id} to={`/documents/${doc.id}`}>
+              <Link key={doc.id} to={documentPath(doc)}>
                 <DocumentCard document={doc} />
               </Link>
             ))}

@@ -4,6 +4,8 @@ import { SearchOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { documentsApi } from '../api';
 import DocumentCard from '../components/DocumentCard';
+import SeoHead from '../seo/SeoHead';
+import { PAGE_SEO, documentPath } from '../seo/seoConfig';
 
 const { Search } = Input;
 const PAGE_SIZE = 20;
@@ -69,8 +71,19 @@ const SearchPage = () => {
     setPage(1);
   };
 
+  const q = searchParams.get('q') || '';
+  const seoTitle = q ? `Tìm kiếm "${q}" | Tài liệu PTIT` : PAGE_SEO.search.title;
+
   return (
     <div>
+      <SeoHead
+        title={seoTitle}
+        description={PAGE_SEO.search.description}
+        keywords={PAGE_SEO.search.keywords}
+        canonical={q ? `/search?q=${encodeURIComponent(q)}` : PAGE_SEO.search.path}
+        noindex={Boolean(q)}
+      />
+
       <h1 className="page-title">Tìm kiếm tài liệu</h1>
       <p className="page-subtitle">Nhập từ khóa để tìm tài liệu theo tên hoặc mô tả</p>
 
@@ -99,7 +112,7 @@ const SearchPage = () => {
               <DocumentCard
                 key={doc.id}
                 document={doc}
-                onClick={() => navigate(`/documents/${doc.id}`)}
+                onClick={() => navigate(documentPath(doc))}
               />
             ))}
           </div>

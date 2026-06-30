@@ -9,7 +9,7 @@ import {
   PlusOutlined,
   DeleteOutlined,
 } from '@ant-design/icons';
-import { adminApi, documentsApi } from '../../api';
+import { documentPath } from '../../seo/seoConfig';
 import PageHeader from '../../components/admin/PageHeader';
 import StatCard from '../../components/admin/StatCard';
 import StatsSkeleton from '../../components/admin/StatsSkeleton';
@@ -166,7 +166,7 @@ const AdminFilesPage = () => {
   };
 
   const handleView = (record) => {
-    window.open(`/documents/${record.id}`, '_blank');
+    window.open(documentPath(record), '_blank');
   };
 
   return (

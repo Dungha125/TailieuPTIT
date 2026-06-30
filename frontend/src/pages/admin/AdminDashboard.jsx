@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { documentPath } from '../../seo/seoConfig';
 import { adminApi, documentsApi } from '../../api';
 import { formatDate } from '../../utils/helpers';
 import PageHeader from '../../components/admin/PageHeader';
@@ -60,7 +61,7 @@ const AdminDashboard = () => {
       dataIndex: 'title',
       key: 'title',
       render: (title, record) => (
-        <Link to={`/documents/${record.id}`} target="_blank">
+        <Link to={documentPath(record)} target="_blank">
           {title}
         </Link>
       ),

@@ -1,11 +1,32 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://api.tailieuptit.lcdkhoacntt1.com/seo/sitemap.xml"
+    },
+    {
+      "source": "/robots.txt",
+      "destination": "https://api.tailieuptit.lcdkhoacntt1.com/seo/robots.txt"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "permanent": true
+    }
+  ],
   "headers": [
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
     {
       "source": "/(.*)",
       "headers": [

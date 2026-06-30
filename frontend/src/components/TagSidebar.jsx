@@ -1,8 +1,10 @@
 import { Spin } from 'antd';
+import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { documentsApi } from '../api';
+import { categoryPath } from '../seo/seoConfig';
 
-const TagSidebar = ({ activeTag, onTagSelect }) => {
+const TagSidebar = ({ activeTag, tagSlug, onTagSelect }) => {
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -18,10 +20,10 @@ const TagSidebar = ({ activeTag, onTagSelect }) => {
 
   return (
     <aside className="tag-sidebar">
-      <h3>Nhãn phân loại</h3>
+      <h2 style={{ fontSize: '1rem', marginBottom: 12, color: '#D32F2F' }}>Danh mục</h2>
       <ul className="tag-list">
         <li
-          className={`tag-item ${!activeTag ? 'active' : ''}`}
+          className={`tag-item ${!activeTag && !tagSlug ? 'active' : ''}`}
           onClick={() => onTagSelect(null)}
         >
           Tất cả
@@ -37,10 +39,11 @@ const TagSidebar = ({ activeTag, onTagSelect }) => {
           .map((tag) => (
             <li
               key={tag.id}
-              className={`tag-item ${activeTag === tag.name ? 'active' : ''}`}
-              onClick={() => onTagSelect(tag.name)}
+              className={`tag-item ${tagSlug === tag.slug || activeTag === tag.name ? 'active' : ''}`}
             >
-              {tag.name}
+              <Link to={categoryPath(tag)} onClick={() => onTagSelect(tag)}>
+                {tag.name}
+              </Link>
             </li>
           ))}
       </ul>
