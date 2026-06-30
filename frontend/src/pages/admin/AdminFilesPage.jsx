@@ -11,6 +11,7 @@ import {
 } from '@ant-design/icons';
 import { documentPath } from '../../seo/seoConfig';
 import { adminApi, documentsApi } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/admin/PageHeader';
 import StatCard from '../../components/admin/StatCard';
 import StatsSkeleton from '../../components/admin/StatsSkeleton';
@@ -37,6 +38,7 @@ const sortDocuments = (docs, sort) => {
 };
 
 const AdminFilesPage = () => {
+  const { isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [documents, setDocuments] = useState([]);
@@ -221,18 +223,21 @@ const AdminFilesPage = () => {
         onEdit={handleEdit}
         onDelete={(record) => setDeleteTarget({ id: record.id, title: record.title })}
         onView={handleView}
+        canDelete={isAdmin}
         pagination={{ current: page, pageSize: PAGE_SIZE, total: filtered.length }}
         onPageChange={setPage}
         bulkActions={
-          <Button
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() =>
-              setDeleteTarget({ bulk: true, ids: selectedRowKeys, title: '' })
-            }
-          >
-            Xóa đã chọn
-          </Button>
+          isAdmin ? (
+            <Button
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() =>
+                setDeleteTarget({ bulk: true, ids: selectedRowKeys, title: '' })
+              }
+            >
+              Xóa đã chọn
+            </Button>
+          ) : null
         }
       />
 

@@ -41,6 +41,7 @@ const DocumentListTable = ({
   pagination,
   onPageChange,
   bulkActions,
+  canDelete = true,
 }) => {
   const columns = [
     {
@@ -133,15 +134,17 @@ const DocumentListTable = ({
               <EditOutlined />
             </button>
           </Tooltip>
-          <Tooltip title="Xóa">
-            <button
-              type="button"
-              className="action-btn action-btn--danger"
-              onClick={() => onDelete(record)}
-            >
-              <DeleteOutlined />
-            </button>
-          </Tooltip>
+          {canDelete && (
+            <Tooltip title="Xóa">
+              <button
+                type="button"
+                className="action-btn action-btn--danger"
+                onClick={() => onDelete(record)}
+              >
+                <DeleteOutlined />
+              </button>
+            </Tooltip>
+          )}
         </div>
       ),
     },
@@ -173,10 +176,14 @@ const DocumentListTable = ({
         loading={loading}
         pagination={false}
         scroll={{ x: 1100 }}
-        rowSelection={{
-          selectedRowKeys,
-          onChange: onSelectionChange,
-        }}
+        rowSelection={
+          canDelete
+            ? {
+                selectedRowKeys,
+                onChange: onSelectionChange,
+              }
+            : undefined
+        }
       />
       {pagination && pagination.total > pagination.pageSize && (
         <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'flex-end' }}>

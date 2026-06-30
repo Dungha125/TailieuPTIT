@@ -8,18 +8,22 @@ import {
   BarChartOutlined,
 } from '@ant-design/icons';
 import StorageBar from './StorageBar';
+import { useAuth } from '../../context/AuthContext';
 
 const NAV_ITEMS = [
-  { path: '/internal-admin-portal', icon: <DashboardOutlined />, label: 'Dashboard', end: true },
-  { path: '/internal-admin-portal/files', icon: <FileTextOutlined />, label: 'Quản lý tài liệu' },
-  { path: '/internal-admin-portal/tags', icon: <FolderOutlined />, label: 'Danh mục' },
-  { path: '/internal-admin-portal/upload', icon: <CloudUploadOutlined />, label: 'Upload tài liệu' },
-  { path: '/internal-admin-portal/users', icon: <TeamOutlined />, label: 'Người dùng' },
-  { path: '/internal-admin-portal/statistics', icon: <BarChartOutlined />, label: 'Thống kê' },
+  { path: '/internal-admin-portal', icon: <DashboardOutlined />, label: 'Dashboard', end: true, roles: ['admin', 'editor'] },
+  { path: '/internal-admin-portal/files', icon: <FileTextOutlined />, label: 'Quản lý tài liệu', roles: ['admin', 'editor'] },
+  { path: '/internal-admin-portal/tags', icon: <FolderOutlined />, label: 'Danh mục', roles: ['admin', 'editor'] },
+  { path: '/internal-admin-portal/upload', icon: <CloudUploadOutlined />, label: 'Upload tài liệu', roles: ['admin', 'editor'] },
+  { path: '/internal-admin-portal/users', icon: <TeamOutlined />, label: 'Người dùng', roles: ['admin'] },
+  { path: '/internal-admin-portal/statistics', icon: <BarChartOutlined />, label: 'Thống kê', roles: ['admin', 'editor'] },
 ];
 
 const AdminSidebar = ({ open, onClose }) => {
   const location = useLocation();
+  const { user, isAdmin } = useAuth();
+
+  const visibleItems = NAV_ITEMS.filter((item) => item.roles.includes(user?.role));
 
   const isActive = (item) => {
     if (item.end) return location.pathname === item.path;
@@ -32,10 +36,10 @@ const AdminSidebar = ({ open, onClose }) => {
       <aside className={`admin-sidebar ${open ? 'admin-sidebar--open' : ''}`}>
         <div className="admin-sidebar__brand">
           <h1>TailieuPTIT</h1>
-          <span>Admin Portal</span>
+          <span>{isAdmin ? 'Admin Portal' : 'Biên tập'}</span>
         </div>
         <nav className="admin-sidebar__nav">
-          {NAV_ITEMS.map((item) => (
+          {visibleItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}

@@ -117,6 +117,10 @@ api.interceptors.response.use(async (res) => {
     const detail = error.response?.data?.detail;
     if (typeof detail === 'string' && detail.includes('blocked')) {
       error.message = 'Truy cập tạm thời bị chặn do hoạt động bất thường.';
+    } else if (typeof detail === 'string') {
+      error.message = detail.includes('Admin') || detail.includes('permissions')
+        ? 'Bạn không có quyền thực hiện thao tác này.'
+        : detail;
     }
   }
 
@@ -179,4 +183,8 @@ export const adminApi = {
   getStorage: () => api.get('/admin/storage'),
   updateDocument: (id, data) => api.put(`/admin/documents/${id}`, data),
   deleteDocument: (id) => api.delete(`/admin/documents/${id}`),
+  listUsers: () => api.get('/admin/users'),
+  createUser: (data) => api.post('/admin/users', data),
+  updateUser: (id, data) => api.put(`/admin/users/${id}`, data),
+  deleteUser: (id) => api.delete(`/admin/users/${id}`),
 };

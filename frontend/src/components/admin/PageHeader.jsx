@@ -2,7 +2,7 @@ import { Breadcrumb } from 'antd';
 import { Link } from 'react-router-dom';
 import { HomeOutlined } from '@ant-design/icons';
 
-const PageHeader = ({ title, subtitle, breadcrumbs = [] }) => (
+const PageHeader = ({ title, subtitle, breadcrumbs = [], action }) => (
   <div className="admin-page-header">
     <Breadcrumb
       className="admin-page-header__breadcrumb"
@@ -19,8 +19,13 @@ const PageHeader = ({ title, subtitle, breadcrumbs = [] }) => (
         })),
       ]}
     />
-    <h1>{title}</h1>
-    {subtitle && <p>{subtitle}</p>}
+    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+      <div>
+        <h1>{title}</h1>
+        {subtitle && <p>{subtitle}</p>}
+      </div>
+      {action}
+    </div>
   </div>
 );
 

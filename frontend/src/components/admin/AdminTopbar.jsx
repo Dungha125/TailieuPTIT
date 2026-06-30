@@ -1,20 +1,24 @@
 import { Input, Avatar, Dropdown, Badge } from 'antd';
 import { SearchOutlined, BellOutlined, MenuOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { roleLabel } from '../../utils/roles';
 
 const { Search } = Input;
 
 const AdminTopbar = ({ onMenuClick, searchValue, onSearch }) => {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   const handleLogout = () => {
-    localStorage.removeItem('admin_token');
+    logout();
     navigate('/internal-admin-portal/login');
   };
 
   const userMenu = {
     items: [
-      { key: 'admin', label: 'Quản trị viên', disabled: true },
+      { key: 'user', label: user?.username || 'Tài khoản', disabled: true },
+      { key: 'role', label: roleLabel(user?.role), disabled: true },
       { type: 'divider' },
       {
         key: 'logout',

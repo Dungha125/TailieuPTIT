@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { useAuth } from '../../context/AuthContext';
 
-const ProtectedRoute = ({ children }) => {
+const AdminOnlyRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -13,11 +13,11 @@ const ProtectedRoute = ({ children }) => {
     );
   }
 
-  if (!user) {
-    return <Navigate to="/internal-admin-portal/login" replace />;
+  if (!user || user.role !== 'admin') {
+    return <Navigate to="/internal-admin-portal" replace />;
   }
 
   return children;
 };
 
-export default ProtectedRoute;
+export default AdminOnlyRoute;

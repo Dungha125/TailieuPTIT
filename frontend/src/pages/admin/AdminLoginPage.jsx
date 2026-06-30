@@ -3,6 +3,7 @@ import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { authApi } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import { createSubmitLock } from '../../utils/security';
 import '../../styles/admin.scss';
 
@@ -11,6 +12,7 @@ const submitLock = createSubmitLock();
 const AdminLoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { loadUser } = useAuth();
 
   const onFinish = async (values) => {
     if (submitLock.isLocked()) return;
@@ -20,6 +22,11 @@ const AdminLoginPage = () => {
       try {
         const res = await authApi.login(values.username, values.password);
         localStorage.setItem('admin_token', res.data.access_token);
+        const user = await loadUser();
+        if (!user) {
+          message.error('Tài khoản không có quyền truy cập portal');
+          return;
+        }
         message.success('Đăng nhập thành công');
         navigate('/internal-admin-portal');
       } catch (err) {
@@ -37,7 +44,7 @@ const AdminLoginPage = () => {
 
   return (
     <div className="admin-login-page">
-      <Card className="login-card" title="TailieuPTIT Admin">
+      <Card className="login-card" title="TailieuPTIT Portal">
         <Form onFinish={onFinish} layout="vertical" size="large">
           <Form.Item
             name="username"

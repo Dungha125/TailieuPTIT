@@ -293,13 +293,99 @@ a {
     }
   }
 
-  @media (max-width: 900px) {
-    height: auto;
+  &__menu-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    flex-shrink: 0;
 
+    &:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+  }
+
+  &__drawer-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__drawer-link,
+  &__drawer-practice {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    color: var(--text-dark);
+    font-weight: 500;
+    transition: background 0.2s;
+
+    .anticon {
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+
+    &:hover {
+      background: #f5f5f5;
+      color: var(--text-dark);
+    }
+  }
+
+  &__drawer-link--active {
+    background: rgba(198, 40, 40, 0.08);
+    color: var(--primary);
+  }
+
+  &__drawer-practice {
+    margin-top: 8px;
+    border: 1px solid var(--border-color);
+  }
+
+  @media (max-width: 900px) {
+    &__practice-label {
+      display: none;
+    }
+
+    &__practice-btn {
+      padding-inline: 10px !important;
+      min-width: 38px;
+    }
+
+    &__search {
+      width: auto;
+      flex: 1;
+      min-width: 0;
+      max-width: 220px;
+    }
+  }
+
+  @media (max-width: 768px) {
     &__inner {
-      flex-wrap: wrap;
-      padding: 10px 16px;
-      gap: 10px;
+      padding: 0 12px;
+      gap: 8px;
+    }
+
+    &__nav--desktop,
+    &__practice-link--desktop {
+      display: none;
+    }
+
+    &__menu-btn {
+      display: inline-flex;
+    }
+
+    &__brand {
+      font-size: 1rem;
+      padding-right: 4px;
     }
 
     &__left {
@@ -308,36 +394,21 @@ a {
     }
 
     &__right {
-      width: 100%;
-      margin-left: 0;
+      gap: 8px;
     }
 
     &__search {
+      max-width: none;
       flex: 1;
-      width: auto;
-      min-width: 0;
-    }
-
-    &__practice-btn span:not(.anticon) {
-      display: none;
-    }
-
-    &__practice-btn {
-      padding-inline: 10px !important;
+      min-width: 120px;
     }
   }
 
-  @media (max-width: 480px) {
-    &__brand {
-      font-size: 1rem;
-    }
-
-    &__link span {
-      display: none;
-    }
-
-    &__link {
-      padding: 0 10px;
+  @media (max-width: 400px) {
+    &__search {
+      .ant-input {
+        font-size: 0.85rem;
+      }
     }
   }
 }

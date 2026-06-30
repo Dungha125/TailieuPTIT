@@ -6,6 +6,8 @@ import viVN from 'antd/locale/vi_VN';
 import PublicNavbar from './components/PublicNavbar';
 import AdminLayout from './components/admin/AdminLayout';
 import ProtectedRoute from './components/admin/ProtectedRoute';
+import AdminOnlyRoute from './components/admin/AdminOnlyRoute';
+import { AuthProvider } from './context/AuthContext';
 import HomePage from './pages/HomePage';
 import DocumentsPage from './pages/DocumentsPage';
 import SearchPage from './pages/SearchPage';
@@ -47,6 +49,7 @@ function App() {
       <ConfigProvider theme={theme} locale={viVN}>
         <AntApp>
           <BrowserRouter>
+            <AuthProvider>
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
@@ -72,13 +75,21 @@ function App() {
                   <Route path="files" element={<AdminFilesPage />} />
                   <Route path="tags" element={<AdminTagsPage />} />
                   <Route path="upload" element={<AdminUploadPage />} />
-                  <Route path="users" element={<AdminUsersPage />} />
+                  <Route
+                    path="users"
+                    element={
+                      <AdminOnlyRoute>
+                        <AdminUsersPage />
+                      </AdminOnlyRoute>
+                    }
+                  />
                   <Route path="statistics" element={<AdminStatisticsPage />} />
                 </Route>
 
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
+            </AuthProvider>
           </BrowserRouter>
         </AntApp>
       </ConfigProvider>
