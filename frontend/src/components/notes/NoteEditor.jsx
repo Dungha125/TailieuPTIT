@@ -11,7 +11,7 @@ import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Image from '@tiptap/extension-image';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Input, Modal, List, Tag, Select } from 'antd';
 import {
@@ -38,13 +38,15 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
   const [linkOpen, setLinkOpen] = useState(false);
   const [urlLinkOpen, setUrlLinkOpen] = useState(false);
   const [urlInput, setUrlInput] = useState('');
+  const [displayText, setDisplayText] = useState('');
   const [docQuery, setDocQuery] = useState('');
   const [docResults, setDocResults] = useState([]);
   const debouncedQ = useDebouncedValue(docQuery);
+  const savedSelectionRef = useRef(null);
 
   const handleEditorClick = useCallback(
-    (_view, event) => {
-      const anchor = event.target.closest?.('a[href]');
+    (_view, _pos, _node, _nodePos, event) => {
+      const anchor = event.target?.closest?.('a[href]');
       if (!anchor) return false;
       const href = anchor.getAttribute('href');
       if (!href || href === '#') return false;
@@ -56,15 +58,25 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
     [navigate]
   );
 
+  const closeUrlLinkModal = useCallback(() => {
+    setUrlLinkOpen(false);
+    setUrlInput('');
+    setDisplayText('');
+  }, []);
+
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3, 4, 5, 6] },
+        link: false,
+      }),
       Underline,
       Highlight,
       Link.configure({
         openOnClick: false,
         autolink: true,
         linkOnPaste: true,
+        protocols: ['http', 'https', 'mailto', 'tel'],
         HTMLAttributes: { class: 'note-link', rel: 'noopener noreferrer', target: '_blank' },
       }),
       Placeholder.configure({ placeholder: 'Bắt đầu viết ghi chú...' }),
@@ -82,9 +94,7 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
     ],
     content: note?.content ? JSON.parse(note.content) : '',
     editorProps: {
-      handleDOMEvents: {
-        click: handleEditorClick,
-      },
+      handleClickOn: handleEditorClick,
     },
     onUpdate: ({ editor: ed }) => {
       onSave?.({ content: JSON.stringify(ed.getJSON()) });
@@ -107,6 +117,17 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
       .then((res) => setDocResults(res.data.items))
       .catch(() => setDocResults([]));
   }, [debouncedQ, linkOpen]);
+
+  const openUrlLinkModal = useCallback(() => {
+    if (!editor) return;
+    const { from, to } = editor.state.selection;
+    savedSelectionRef.current = { from, to };
+    const selectedText = editor.state.doc.textBetween(from, to, ' ');
+    const linkAttrs = editor.getAttributes('link');
+    setUrlInput(linkAttrs.href || '');
+    setDisplayText(selectedText || '');
+    setUrlLinkOpen(true);
+  }, [editor]);
 
   const applyDocumentLink = useCallback(
     (doc) => {
@@ -140,27 +161,38 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
   );
 
   const applyUrlLink = useCallback(() => {
-    if (!editor || !urlInput.trim()) return;
+    if (!editor) return;
     const href = normalizeLinkUrl(urlInput);
-    const label = urlInput.trim();
-    const { from, to } = editor.state.selection;
+    const text = (displayText || urlInput).trim();
+    if (!href || !text) return;
 
-    if (from === to) {
-      editor
-        .chain()
-        .focus()
-        .insertContent({
-          type: 'text',
-          marks: [{ type: 'link', attrs: { href, target: '_blank', rel: 'noopener noreferrer' } }],
-          text: label,
-        })
-        .run();
-    } else {
-      editor.chain().focus().setLink({ href, target: '_blank', rel: 'noopener noreferrer' }).run();
+    const saved = savedSelectionRef.current;
+    const chain = editor.chain().focus();
+
+    if (saved && saved.from !== saved.to) {
+      chain.setTextSelection(saved).deleteSelection();
     }
-    setUrlLinkOpen(false);
-    setUrlInput('');
-  }, [editor, urlInput]);
+
+    chain
+      .insertContent({
+        type: 'text',
+        marks: [
+          {
+            type: 'link',
+            attrs: {
+              href,
+              target: '_blank',
+              rel: 'noopener noreferrer',
+            },
+          },
+        ],
+        text,
+      })
+      .run();
+
+    savedSelectionRef.current = null;
+    closeUrlLinkModal();
+  }, [editor, urlInput, displayText, closeUrlLinkModal]);
 
   if (!editor) return null;
 
@@ -203,7 +235,7 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
         {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), <OrderedListOutlined />)}
         {btn(false, () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), <TableOutlined />)}
         {btn(false, () => setLinkOpen(true), <FileTextOutlined />)}
-        {btn(false, () => setUrlLinkOpen(true), <LinkOutlined />)}
+        {btn(false, () => openUrlLinkModal(), <LinkOutlined />)}
       </div>
       <EditorContent editor={editor} className="note-editor__content" />
 
@@ -241,23 +273,34 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
       <Modal
         title="Chèn liên kết web"
         open={urlLinkOpen}
-        onCancel={() => {
-          setUrlLinkOpen(false);
-          setUrlInput('');
-        }}
+        onCancel={closeUrlLinkModal}
         onOk={applyUrlLink}
         okText="Chèn"
         cancelText="Hủy"
+        destroyOnClose
       >
-        <p style={{ color: '#757575', marginBottom: 12 }}>
-          Nhập URL đầy đủ (https://...) hoặc tên miền. Nếu đã bôi đen chữ, liên kết sẽ gắn vào đoạn đó.
-        </p>
-        <Input
-          placeholder="https://example.com"
-          value={urlInput}
-          onChange={(e) => setUrlInput(e.target.value)}
-          onPressEnter={applyUrlLink}
-        />
+        <div className="note-link-form">
+          <label className="note-link-form__label" htmlFor="note-link-text">
+            Nội dung hiển thị
+          </label>
+          <Input
+            id="note-link-text"
+            placeholder="Ví dụ: Tài liệu tham khảo"
+            value={displayText}
+            onChange={(e) => setDisplayText(e.target.value)}
+            style={{ marginBottom: 12 }}
+          />
+          <label className="note-link-form__label" htmlFor="note-link-url">
+            Địa chỉ liên kết (URL)
+          </label>
+          <Input
+            id="note-link-url"
+            placeholder="https://example.com"
+            value={urlInput}
+            onChange={(e) => setUrlInput(e.target.value)}
+            onPressEnter={applyUrlLink}
+          />
+        </div>
       </Modal>
     </div>
   );
