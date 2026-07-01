@@ -173,6 +173,11 @@ def create_app() -> FastAPI:
 
             run_user_migrations(db)
             run_notes_migrations(db)
+            from app.services.note_service import purge_expired_trash
+
+            purged = purge_expired_trash(db)
+            if purged:
+                logger.info("Purged %s expired notes from trash", purged)
         except Exception as e:
             logger.error("User/notes migration failed: %s", e)
             db.rollback()

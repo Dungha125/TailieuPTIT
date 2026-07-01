@@ -217,6 +217,38 @@
 
 .notes-list-item__title {
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notes-list-item__pin {
+  color: #c62828;
+  font-size: 0.85rem;
+}
+
+.note-editor__title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px 0;
+}
+
+.note-editor__title-row .note-editor__title {
+  flex: 1;
+  padding: 4px 0 8px !important;
+}
+
+.note-editor__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.note-editor--readonly .note-editor__content {
+  opacity: 0.92;
 }
 
 .notes-list-item__meta {

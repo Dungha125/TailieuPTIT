@@ -3,7 +3,6 @@ import {
   FolderOutlined,
   PlusOutlined,
   PushpinOutlined,
-  InboxOutlined,
   DeleteOutlined,
   FileTextOutlined,
 } from '@ant-design/icons';
@@ -12,7 +11,6 @@ import { Button, Input, Tree } from 'antd';
 const VIEWS = [
   { key: 'all', label: 'Tất cả ghi chú', icon: <FileTextOutlined /> },
   { key: 'pinned', label: 'Đã ghim', icon: <PushpinOutlined /> },
-  { key: 'archived', label: 'Lưu trữ', icon: <InboxOutlined /> },
   { key: 'trash', label: 'Thùng rác', icon: <DeleteOutlined /> },
 ];
 
@@ -32,6 +30,7 @@ const NotesSidebar = ({
   onFolderSelect,
   onCreateFolder,
   onCreateNote,
+  canCreateNote = true,
   collapsed,
   onToggle,
 }) => {
@@ -55,6 +54,7 @@ const NotesSidebar = ({
             icon={<PlusOutlined />}
             className="btn-gradient notes-sidebar__new"
             onClick={onCreateNote}
+            disabled={!canCreateNote}
           >
             Note mới
           </Button>
@@ -73,35 +73,37 @@ const NotesSidebar = ({
             ))}
           </nav>
 
-          <div className="notes-sidebar__section">
-            <div className="notes-sidebar__section-title">
-              Thư mục
-              <Button type="text" size="small" icon={<PlusOutlined />} onClick={() => setAddingFolder(true)} />
-            </div>
-            {addingFolder && (
-              <Input
-                size="small"
-                placeholder="Tên thư mục"
-                value={newFolder}
-                onChange={(e) => setNewFolder(e.target.value)}
-                onPressEnter={() => {
-                  if (newFolder.trim()) onCreateFolder(newFolder.trim());
-                  setNewFolder('');
-                  setAddingFolder(false);
+          {view !== 'trash' && (
+            <div className="notes-sidebar__section">
+              <div className="notes-sidebar__section-title">
+                Thư mục
+                <Button type="text" size="small" icon={<PlusOutlined />} onClick={() => setAddingFolder(true)} />
+              </div>
+              {addingFolder && (
+                <Input
+                  size="small"
+                  placeholder="Tên thư mục"
+                  value={newFolder}
+                  onChange={(e) => setNewFolder(e.target.value)}
+                  onPressEnter={() => {
+                    if (newFolder.trim()) onCreateFolder(newFolder.trim());
+                    setNewFolder('');
+                    setAddingFolder(false);
+                  }}
+                  onBlur={() => setAddingFolder(false)}
+                />
+              )}
+              <Tree
+                showIcon
+                selectable
+                treeData={buildTreeData(folders)}
+                onSelect={(keys, info) => {
+                  const id = info.node.folderId;
+                  if (id) onFolderSelect(id);
                 }}
-                onBlur={() => setAddingFolder(false)}
               />
-            )}
-            <Tree
-              showIcon
-              selectable
-              treeData={buildTreeData(folders)}
-              onSelect={(keys, info) => {
-                const id = info.node.folderId;
-                if (id) onFolderSelect(id);
-              }}
-            />
-          </div>
+            </div>
+          )}
         </>
       )}
     </aside>

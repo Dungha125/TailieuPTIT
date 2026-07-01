@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import or_
@@ -14,6 +14,9 @@ from app.services.redis_service import redis_service
 
 RECENT_NOTES_KEY = "notes:recent:{user_id}"
 RECENT_NOTES_TTL = 300
+NOTE_MAX_ACTIVE = 20
+NOTE_STORAGE_WARN_AT = 19
+TRASH_RETENTION_DAYS = 14
 
 
 def _folder_owned(db: Session, user_id: int, folder_id: int) -> NoteFolder:
@@ -139,10 +142,59 @@ def note_to_response(note: Note, db: Session) -> dict:
         "is_pinned": note.is_pinned,
         "is_archived": note.is_archived,
         "is_trashed": note.is_trashed,
+        "trashed_at": note.trashed_at,
+        "trash_days_remaining": trash_days_remaining(note.trashed_at) if note.is_trashed else None,
         "created_at": note.created_at,
         "updated_at": note.updated_at,
         "document_links": links,
     }
+
+
+def count_active_notes(db: Session, user_id: int) -> int:
+    return (
+        db.query(Note)
+        .filter(Note.user_id == user_id, Note.is_trashed.is_(False))
+        .count()
+    )
+
+
+def get_note_quota(db: Session, user: User) -> dict:
+    active = count_active_notes(db, user.id)
+    return {
+        "active_count": active,
+        "max_count": NOTE_MAX_ACTIVE,
+        "storage_warning": active >= NOTE_STORAGE_WARN_AT,
+        "can_create": active < NOTE_MAX_ACTIVE,
+    }
+
+
+def _ensure_can_create_note(db: Session, user: User) -> None:
+    if count_active_notes(db, user.id) >= NOTE_MAX_ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Dung lượng ghi chú đã đầy. Vui lòng xóa bớt ghi chú để có thêm không gian lưu trữ.",
+        )
+
+
+def purge_expired_trash(db: Session, user_id: int | None = None) -> int:
+    cutoff = datetime.now(timezone.utc) - timedelta(days=TRASH_RETENTION_DAYS)
+    query = db.query(Note).filter(Note.is_trashed.is_(True), Note.trashed_at.isnot(None), Note.trashed_at < cutoff)
+    if user_id is not None:
+        query = query.filter(Note.user_id == user_id)
+    count = query.count()
+    if count:
+        query.delete(synchronize_session=False)
+        db.commit()
+    return count
+
+
+def trash_days_remaining(trashed_at: datetime | None) -> int | None:
+    if not trashed_at:
+        return None
+    if trashed_at.tzinfo is None:
+        trashed_at = trashed_at.replace(tzinfo=timezone.utc)
+    elapsed = (datetime.now(timezone.utc) - trashed_at).days
+    return max(0, TRASH_RETENTION_DAYS - elapsed)
 
 
 def invalidate_recent_notes(user_id: int) -> None:
@@ -163,12 +215,11 @@ def list_notes(
 
     if view == "pinned":
         query = query.filter(Note.is_pinned.is_(True), Note.is_trashed.is_(False))
-    elif view == "archived":
-        query = query.filter(Note.is_archived.is_(True), Note.is_trashed.is_(False))
     elif view == "trash":
+        purge_expired_trash(db, user.id)
         query = query.filter(Note.is_trashed.is_(True))
     else:
-        query = query.filter(Note.is_archived.is_(False), Note.is_trashed.is_(False))
+        query = query.filter(Note.is_trashed.is_(False))
 
     if folder_id is not None:
         query = query.filter(Note.folder_id == folder_id)
@@ -189,6 +240,7 @@ def list_notes(
 
 
 def create_note(db: Session, user: User, **data) -> Note:
+    _ensure_can_create_note(db, user)
     if data.get("folder_id"):
         _folder_owned(db, user.id, data["folder_id"])
     note = Note(
@@ -213,11 +265,30 @@ def update_note(db: Session, user: User, note_id: int, **data) -> Note:
         if field in data and data[field] is not None:
             setattr(note, field, data[field])
     if "is_trashed" in data and data["is_trashed"] is not None:
-        note.is_trashed = data["is_trashed"]
-        note.trashed_at = datetime.now(timezone.utc) if data["is_trashed"] else None
         if data["is_trashed"]:
+            note.is_trashed = True
+            note.trashed_at = datetime.now(timezone.utc)
             note.is_archived = False
             note.is_pinned = False
+        else:
+            if note.is_trashed:
+                _ensure_can_create_note(db, user)
+            note.is_trashed = False
+            note.trashed_at = None
+    note.updated_at = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(note)
+    invalidate_recent_notes(user.id)
+    return note
+
+
+def restore_note(db: Session, user: User, note_id: int) -> Note:
+    note = _note_owned(db, user.id, note_id)
+    if not note.is_trashed:
+        raise HTTPException(status_code=400, detail="Ghi chú không nằm trong thùng rác")
+    _ensure_can_create_note(db, user)
+    note.is_trashed = False
+    note.trashed_at = None
     note.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(note)
@@ -228,10 +299,14 @@ def update_note(db: Session, user: User, note_id: int, **data) -> Note:
 def delete_note(db: Session, user: User, note_id: int, permanent: bool = False) -> None:
     note = _note_owned(db, user.id, note_id)
     if permanent:
+        if not note.is_trashed:
+            raise HTTPException(status_code=400, detail="Chỉ xóa vĩnh viễn ghi chú trong thùng rác")
         db.delete(note)
     else:
         note.is_trashed = True
         note.trashed_at = datetime.now(timezone.utc)
+        note.is_pinned = False
+        note.is_archived = False
     db.commit()
     invalidate_recent_notes(user.id)
 

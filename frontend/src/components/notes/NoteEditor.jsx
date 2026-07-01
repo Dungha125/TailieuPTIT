@@ -25,6 +25,10 @@ import {
   HighlightOutlined,
   FileTextOutlined,
   FolderOutlined,
+  PushpinOutlined,
+  PushpinFilled,
+  DeleteOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import { documentsApi } from '../../api';
 import { DocumentLink } from './DocumentLinkExtension';
@@ -32,7 +36,18 @@ import { flattenFolders } from './folderUtils';
 import { normalizeLinkUrl, openNoteLink } from './linkUtils';
 import { useDebouncedValue } from '../../utils/useDebouncedValue';
 
-const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange }) => {
+const NoteEditor = ({
+  note,
+  folders = [],
+  readOnly = false,
+  onSave,
+  onTitleChange,
+  onFolderChange,
+  onPinToggle,
+  onMoveToTrash,
+  onRestore,
+  onPermanentDelete,
+}) => {
   const navigate = useNavigate();
   const [title, setTitle] = useState(note?.title || '');
   const [linkOpen, setLinkOpen] = useState(false);
@@ -109,6 +124,11 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
       editor.commands.setContent(parsed);
     }
   }, [note?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!editor) return;
+    editor.setEditable(!readOnly);
+  }, [editor, readOnly]);
 
   useEffect(() => {
     if (!linkOpen) return;
@@ -204,16 +224,45 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
 
   return (
     <div className="note-editor">
-      <Input
-        className="note-editor__title"
-        variant="borderless"
-        value={title}
-        placeholder="Tiêu đề"
-        onChange={(e) => {
-          setTitle(e.target.value);
-          onTitleChange?.(e.target.value);
-        }}
-      />
+      <div className="note-editor__title-row">
+        <Input
+          className="note-editor__title"
+          variant="borderless"
+          value={title}
+          placeholder="Tiêu đề"
+          readOnly={readOnly}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            onTitleChange?.(e.target.value);
+          }}
+        />
+        <div className="note-editor__actions">
+          {readOnly ? (
+            <>
+              <Button type="primary" icon={<UndoOutlined />} onClick={onRestore}>
+                Khôi phục
+              </Button>
+              <Button danger icon={<DeleteOutlined />} onClick={onPermanentDelete}>
+                Xóa vĩnh viễn
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                type={note?.is_pinned ? 'primary' : 'default'}
+                icon={note?.is_pinned ? <PushpinFilled /> : <PushpinOutlined />}
+                onClick={onPinToggle}
+              >
+                {note?.is_pinned ? 'Bỏ ghim' : 'Ghim'}
+              </Button>
+              <Button danger icon={<DeleteOutlined />} onClick={onMoveToTrash}>
+                Xóa
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+      {!readOnly && (
       <div className="note-editor__meta">
         <FolderOutlined className="note-editor__meta-icon" />
         <Select
@@ -226,6 +275,8 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
         />
         <span className="note-editor__meta-hint">Link ngoài mở tab mới · Ctrl+click mở tab mới (link nội bộ)</span>
       </div>
+      )}
+      {!readOnly && (
       <div className="note-editor__toolbar">
         {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <BoldOutlined />)}
         {btn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), <ItalicOutlined />)}
@@ -237,6 +288,7 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
         {btn(false, () => setLinkOpen(true), <FileTextOutlined />)}
         {btn(false, () => openUrlLinkModal(), <LinkOutlined />)}
       </div>
+      )}
       <EditorContent editor={editor} className="note-editor__content" />
 
       <Modal

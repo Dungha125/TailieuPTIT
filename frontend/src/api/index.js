@@ -174,10 +174,12 @@ export const notesApi = {
   reorderFolders: (items) => api.put('/notes/folders/reorder', { items }),
   deleteFolder: (id) => api.delete(`/notes/folders/${id}`),
   list: (params) => api.get('/notes', { params }),
+  quota: () => api.get('/notes/quota'),
   get: (id) => api.get(`/notes/${id}`),
   create: (data) => api.post('/notes', data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id, permanent = false) => api.delete(`/notes/${id}`, { params: { permanent } }),
+  restore: (id) => api.post(`/notes/${id}/restore`),
   addLink: (noteId, data) => api.post(`/notes/${noteId}/links`, data),
 };
 

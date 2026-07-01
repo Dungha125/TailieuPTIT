@@ -77,9 +77,18 @@ class NoteResponse(BaseModel):
     is_pinned: bool
     is_archived: bool
     is_trashed: bool
+    trashed_at: datetime | None = None
+    trash_days_remaining: int | None = None
     created_at: datetime
     updated_at: datetime
     document_links: list[NoteDocumentLinkResponse] = []
+
+
+class NoteQuota(BaseModel):
+    active_count: int
+    max_count: int
+    storage_warning: bool
+    can_create: bool
 
 
 class NoteListResponse(BaseModel):
@@ -88,3 +97,4 @@ class NoteListResponse(BaseModel):
     page: int
     page_size: int
     has_more: bool
+    quota: NoteQuota

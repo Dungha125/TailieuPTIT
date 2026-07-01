@@ -14,6 +14,7 @@ from app.schemas.note import (
     NoteFolderResponse,
     NoteFolderUpdate,
     NoteListResponse,
+    NoteQuota,
     NoteResponse,
     NoteUpdate,
 )
@@ -88,13 +89,18 @@ def delete_folder(
     note_service.delete_folder(db, current_user, folder_id)
 
 
+@router.get("/quota", response_model=NoteQuota)
+def get_note_quota(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return note_service.get_note_quota(db, current_user)
+
+
 @router.get("", response_model=NoteListResponse)
 def list_notes(
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     folder_id: int | None = None,
     q: str | None = None,
-    view: str = Query("all", pattern="^(all|pinned|archived|trash)$"),
+    view: str = Query("all", pattern="^(all|pinned|trash)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
@@ -107,6 +113,7 @@ def list_notes(
         page=page,
         page_size=page_size,
         has_more=(page * page_size) < total,
+        quota=note_service.get_note_quota(db, current_user),
     )
 
 
@@ -138,6 +145,16 @@ def update_note(
     db: Session = Depends(get_db),
 ):
     note = note_service.update_note(db, current_user, note_id, **payload.model_dump(exclude_unset=True))
+    return note_service.note_to_response(note, db)
+
+
+@router.post("/{note_id}/restore", response_model=NoteResponse)
+def restore_note(
+    note_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    note = note_service.restore_note(db, current_user, note_id)
     return note_service.note_to_response(note, db)
 
 
