@@ -80,7 +80,7 @@ function App() {
 
                     <Route
                       path="/app/dashboard"
-                      element={<Navigate to="/documents?tab=bookmarks" replace />}
+                      element={<Navigate to="/documents?tab=overview" replace />}
                     />
                     <Route
                       path="/app/notes"

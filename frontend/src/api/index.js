@@ -174,6 +174,7 @@ export const notesApi = {
   reorderFolders: (items) => api.put('/notes/folders/reorder', { items }),
   deleteFolder: (id) => api.delete(`/notes/folders/${id}`),
   list: (params) => api.get('/notes', { params }),
+  calendar: (year, month) => api.get('/notes/calendar', { params: { year, month } }),
   quota: () => api.get('/notes/quota'),
   get: (id) => api.get(`/notes/${id}`),
   create: (data) => api.post('/notes', data),

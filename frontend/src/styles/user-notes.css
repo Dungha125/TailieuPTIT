@@ -134,11 +134,61 @@
 @media (max-width: 1024px) {
   .notes-workspace {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
-  .notes-workspace__list,
-  .notes-sidebar {
+
+  .notes-workspace__sidebar-desktop {
     display: none;
   }
+
+  .notes-workspace--mobile-list .notes-workspace__editor {
+    display: none;
+  }
+
+  .notes-workspace--mobile-editor .notes-workspace__list {
+    display: none;
+  }
+
+  .notes-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    grid-column: 1 / -1;
+    padding: 8px 10px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    margin-bottom: 0;
+  }
+
+  .notes-mobile-bar__title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 0.95rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: #424242;
+  }
+
+  .note-editor__title-row {
+    flex-direction: column;
+  }
+
+  .note-editor__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+
+@media (min-width: 1025px) {
+  .notes-mobile-bar {
+    display: none;
+  }
+}
+
+.notes-workspace__sidebar-desktop {
+  display: block;
 }
 
 .notes-sidebar {
@@ -474,4 +524,126 @@
   color: #9e9e9e;
   padding: 24px;
   text-align: center;
+}
+
+.notes-overview__stat {
+  text-align: center;
+  font-weight: 600;
+}
+
+.notes-overview__warn {
+  margin-top: 16px;
+  border-color: #ffe58f !important;
+  background: #fffbe6 !important;
+  color: #ad6800;
+}
+
+.notes-overview__empty {
+  color: #9e9e9e;
+  padding: 16px 0;
+  text-align: center;
+}
+
+.notes-overview__note-link {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #c62828;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+}
+
+.notes-overview__note-link:hover {
+  text-decoration: underline;
+}
+
+.notes-calendar__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notes-calendar__nav-btn {
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notes-calendar__month {
+  font-weight: 600;
+  min-width: 140px;
+  text-align: center;
+}
+
+.notes-calendar__weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-bottom: 8px;
+  text-align: center;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #757575;
+}
+
+.notes-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.notes-calendar__cell {
+  position: relative;
+  min-height: 44px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.9rem;
+}
+
+.notes-calendar__cell--empty {
+  border: none;
+  background: transparent;
+  cursor: default;
+}
+
+.notes-calendar__cell--today {
+  border-color: #c62828;
+}
+
+.notes-calendar__cell--selected {
+  background: rgba(198, 40, 40, 0.1);
+  border-color: #c62828;
+  color: #c62828;
+  font-weight: 700;
+}
+
+.notes-calendar__dot {
+  font-size: 0.65rem;
+  line-height: 1;
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 999px;
+  background: #c62828;
+  color: #fff;
+  font-weight: 700;
+}
+
+.notes-calendar__hint {
+  margin: 12px 0 0;
+  font-size: 0.8rem;
+  color: #9e9e9e;
 }

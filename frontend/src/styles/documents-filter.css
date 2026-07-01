@@ -371,13 +371,26 @@
 
   .documents-page__hub-bar .documents-hub-tabs {
     width: 100%;
-    justify-content: stretch;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .documents-page__hub-bar .documents-hub-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .documents-page__hub-bar .documents-hub-tabs__btn {
-    flex: 1;
+    flex: 0 0 auto;
     justify-content: center;
-    padding-inline: 8px;
+    padding-inline: 12px;
+    white-space: nowrap;
+  }
+
+  .documents-hub-tabs__label {
+    font-size: 0.82rem;
   }
 
   .documents-page__filter-btn {

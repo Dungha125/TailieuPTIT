@@ -1,12 +1,21 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Input, List, message, Modal, Spin, Tag } from 'antd';
-import { PushpinFilled, PushpinOutlined } from '@ant-design/icons';
+import { Alert, Drawer, Input, List, message, Modal, Spin, Tag } from 'antd';
+import { PushpinFilled } from '@ant-design/icons';
 import { notesApi } from '../../api';
 import { useDebouncedValue } from '../../utils/useDebouncedValue';
+import { useMediaQuery } from '../../utils/useMediaQuery';
 import NotesSidebar from './NotesSidebar';
 import NoteEditor from './NoteEditor';
+import NotesMobileBar from './NotesMobileBar';
+
+const VIEW_TITLES = {
+  all: 'Tất cả ghi chú',
+  pinned: 'Đã ghim',
+  trash: 'Thùng rác',
+};
 
 const NotesWorkspace = ({ noteId, onSelectNote }) => {
+  const isMobile = useMediaQuery('(max-width: 1024px)');
   const [folders, setFolders] = useState([]);
   const [notes, setNotes] = useState([]);
   const [total, setTotal] = useState(0);
@@ -18,9 +27,15 @@ const NotesWorkspace = ({ noteId, onSelectNote }) => {
   const [activeNote, setActiveNote] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingSave, setPendingSave] = useState(null);
   const debouncedSearch = useDebouncedValue(search);
   const debouncedSave = useDebouncedValue(pendingSave, 800);
+
+  const showEditor = Boolean(noteId && activeNote);
+  const mobileTitle = showEditor
+    ? activeNote?.title || 'Ghi chú'
+    : VIEW_TITLES[view] || 'Ghi chú';
 
   const loadFolders = useCallback(() => {
     notesApi.folders().then((res) => setFolders(res.data)).catch(console.error);
@@ -71,6 +86,7 @@ const NotesWorkspace = ({ noteId, onSelectNote }) => {
   const createNote = async () => {
     try {
       const res = await notesApi.create({ title: 'Không có tiêu đề', folder_id: folderId });
+      setMobileMenuOpen(false);
       onSelectNote?.(res.data.id);
       loadNotes();
     } catch (err) {
@@ -148,125 +164,167 @@ const NotesWorkspace = ({ noteId, onSelectNote }) => {
     });
   };
 
+  const handleViewChange = (v) => {
+    setView(v);
+    setFolderId(null);
+    setPage(1);
+    setMobileMenuOpen(false);
+    if (v === 'trash') {
+      setActiveNote(null);
+      onSelectNote?.(null);
+    }
+  };
+
   const isTrashView = view === 'trash';
 
-  return (
-    <div className="notes-workspace notes-workspace--embedded">
-      <NotesSidebar
-        folders={folders}
-        view={view}
-        canCreateNote={quota?.can_create !== false}
-        onViewChange={(v) => {
-          setView(v);
-          setFolderId(null);
-          setPage(1);
-          if (v === 'trash') {
-            setActiveNote(null);
-            onSelectNote?.(null);
-          }
-        }}
-        onFolderSelect={(id) => {
-          setFolderId(id);
-          setView('all');
-          setPage(1);
-        }}
-        onCreateFolder={async (name) => {
-          await notesApi.createFolder({ name, parent_id: folderId });
-          loadFolders();
-        }}
-        onCreateNote={createNote}
-        collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((v) => !v)}
-      />
+  const sidebar = (
+    <NotesSidebar
+      folders={folders}
+      view={view}
+      canCreateNote={quota?.can_create !== false}
+      onViewChange={handleViewChange}
+      onFolderSelect={(id) => {
+        setFolderId(id);
+        setView('all');
+        setPage(1);
+        setMobileMenuOpen(false);
+      }}
+      onCreateFolder={async (name) => {
+        await notesApi.createFolder({ name, parent_id: folderId });
+        loadFolders();
+      }}
+      onCreateNote={createNote}
+      collapsed={sidebarCollapsed}
+      onToggle={() => setSidebarCollapsed((v) => !v)}
+    />
+  );
 
-      <div className="notes-workspace__list">
-        {quota?.storage_warning && !isTrashView && (
-          <Alert
-            type="warning"
-            showIcon
-            style={{ marginBottom: 12 }}
-            message="Dung lượng ghi chú sắp đầy"
-            description="Bạn cần xóa bớt ghi chú để có thêm không gian lưu trữ."
-          />
-        )}
-
-        {isTrashView && (
-          <Alert
-            type="info"
-            showIcon
-            style={{ marginBottom: 12 }}
-            message="Thùng rác"
-            description="Ghi chú trong thùng rác sẽ bị xóa vĩnh viễn sau 14 ngày kể từ ngày xóa."
-          />
-        )}
-
-        <Input.Search
-          placeholder="Tìm ghi chú..."
-          allowClear
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+  const listPanel = (
+    <div className="notes-workspace__list">
+      {quota?.storage_warning && !isTrashView && (
+        <Alert
+          type="warning"
+          showIcon
           style={{ marginBottom: 12 }}
+          message="Dung lượng ghi chú sắp đầy"
+          description="Bạn cần xóa bớt ghi chú để có thêm không gian lưu trữ."
         />
-        {loading ? (
-          <Spin />
-        ) : (
-          <List
-            dataSource={notes}
-            renderItem={(item) => (
-              <List.Item
-                className={`notes-list-item ${String(activeNote?.id) === String(item.id) ? 'notes-list-item--active' : ''}`}
-                onClick={() => onSelectNote?.(item.id)}
-              >
-                <div className="notes-list-item__body">
-                  <div className="notes-list-item__title">
-                    {item.is_pinned && !item.is_trashed && (
-                      <PushpinFilled className="notes-list-item__pin" />
-                    )}
-                    {item.title}
-                  </div>
-                  <div className="notes-list-item__meta">
-                    {new Date(item.updated_at).toLocaleString('vi-VN')}
-                    {item.is_trashed && item.trash_days_remaining != null && (
-                      <Tag color="orange" style={{ marginLeft: 8 }}>
-                        Còn {item.trash_days_remaining} ngày
-                      </Tag>
-                    )}
-                  </div>
-                </div>
-              </List.Item>
-            )}
-          />
-        )}
-        {page * 20 < total && (
-          <button type="button" className="notes-load-more" onClick={() => setPage((p) => p + 1)}>
-            Tải thêm
-          </button>
-        )}
-      </div>
+      )}
 
-      <div className="notes-workspace__editor">
-        {activeNote ? (
-          <NoteEditor
-            note={activeNote}
-            folders={folders}
-            readOnly={activeNote.is_trashed}
-            onSave={handleSave}
-            onTitleChange={(title) => handleSave({ title })}
-            onFolderChange={(folder_id) => {
-              handleSave({ folder_id });
-              loadNotes();
-            }}
-            onPinToggle={handlePinToggle}
-            onMoveToTrash={handleMoveToTrash}
-            onRestore={handleRestore}
-            onPermanentDelete={handlePermanentDelete}
-          />
-        ) : (
-          <div className="notes-empty">
-            {isTrashView ? 'Chọn ghi chú trong thùng rác để khôi phục hoặc xóa' : 'Chọn hoặc tạo ghi chú để bắt đầu'}
-          </div>
-        )}
-      </div>
+      {isTrashView && (
+        <Alert
+          type="info"
+          showIcon
+          style={{ marginBottom: 12 }}
+          message="Thùng rác"
+          description="Ghi chú trong thùng rác sẽ bị xóa vĩnh viễn sau 14 ngày kể từ ngày xóa."
+        />
+      )}
+
+      <Input.Search
+        placeholder="Tìm ghi chú..."
+        allowClear
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        style={{ marginBottom: 12 }}
+      />
+      {loading ? (
+        <Spin />
+      ) : (
+        <List
+          dataSource={notes}
+          renderItem={(item) => (
+            <List.Item
+              className={`notes-list-item ${String(activeNote?.id) === String(item.id) ? 'notes-list-item--active' : ''}`}
+              onClick={() => onSelectNote?.(item.id)}
+            >
+              <div className="notes-list-item__body">
+                <div className="notes-list-item__title">
+                  {item.is_pinned && !item.is_trashed && (
+                    <PushpinFilled className="notes-list-item__pin" />
+                  )}
+                  {item.title}
+                </div>
+                <div className="notes-list-item__meta">
+                  {new Date(item.updated_at).toLocaleString('vi-VN')}
+                  {item.is_trashed && item.trash_days_remaining != null && (
+                    <Tag color="orange" style={{ marginLeft: 8 }}>
+                      Còn {item.trash_days_remaining} ngày
+                    </Tag>
+                  )}
+                </div>
+              </div>
+            </List.Item>
+          )}
+        />
+      )}
+      {page * 20 < total && (
+        <button type="button" className="notes-load-more" onClick={() => setPage((p) => p + 1)}>
+          Tải thêm
+        </button>
+      )}
+    </div>
+  );
+
+  const editorPanel = (
+    <div className="notes-workspace__editor">
+      {activeNote ? (
+        <NoteEditor
+          note={activeNote}
+          folders={folders}
+          readOnly={activeNote.is_trashed}
+          onSave={handleSave}
+          onTitleChange={(title) => handleSave({ title })}
+          onFolderChange={(folder_id) => {
+            handleSave({ folder_id });
+            loadNotes();
+          }}
+          onPinToggle={handlePinToggle}
+          onMoveToTrash={handleMoveToTrash}
+          onRestore={handleRestore}
+          onPermanentDelete={handlePermanentDelete}
+        />
+      ) : (
+        <div className="notes-empty">
+          {isTrashView
+            ? 'Chọn ghi chú trong thùng rác để khôi phục hoặc xóa'
+            : 'Chọn hoặc tạo ghi chú để bắt đầu'}
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div
+      className={`notes-workspace notes-workspace--embedded ${
+        isMobile ? (showEditor ? 'notes-workspace--mobile-editor' : 'notes-workspace--mobile-list') : ''
+      }`}
+    >
+      {isMobile && (
+        <NotesMobileBar
+          showBack={showEditor}
+          title={mobileTitle}
+          canCreateNote={quota?.can_create !== false}
+          onMenuOpen={() => setMobileMenuOpen(true)}
+          onBack={() => onSelectNote?.(null)}
+          onCreateNote={createNote}
+        />
+      )}
+
+      <Drawer
+        title="Ghi chú"
+        placement="left"
+        open={isMobile && mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+        width={300}
+        className="notes-mobile-drawer"
+      >
+        {sidebar}
+      </Drawer>
+
+      <div className="notes-workspace__sidebar-desktop">{sidebar}</div>
+      {listPanel}
+      {editorPanel}
     </div>
   );
 };
