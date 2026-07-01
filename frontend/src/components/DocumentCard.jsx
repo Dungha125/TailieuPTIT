@@ -1,9 +1,17 @@
 import { Tag } from 'antd';
 import BookmarkButton from './BookmarkButton';
 
-const DocumentCard = ({ document, onClick }) => {
+const DocumentCard = ({ document, onClick, showTypeBadge = false }) => {
+  const fileType = (document.file_type || 'file').toLowerCase();
+
   return (
-    <div className="doc-card" onClick={() => onClick?.(document)}>
+    <div
+      className={`doc-card doc-card--${fileType}`}
+      onClick={() => onClick?.(document)}
+    >
+      {showTypeBadge && (
+        <div className="doc-card__type-badge">{document.file_type?.toUpperCase() || 'FILE'}</div>
+      )}
       <div className="doc-card__header">
         <div className="doc-card-title">{document.title}</div>
         <BookmarkButton documentId={document.id} />
