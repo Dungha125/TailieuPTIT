@@ -206,65 +206,76 @@ const DocumentsPage = () => {
         ]}
       />
 
-      <h1 className="page-title">{pageTitle}</h1>
-      <p className="page-subtitle">
-        {hubTab === 'notes'
-          ? 'Soạn thảo ghi chú và liên kết tài liệu học tập'
-          : hubTab === 'bookmarks'
-            ? 'Quản lý tài liệu đã lưu và xem lại nhanh'
-            : 'Tra cứu và tải xuống tài liệu công khai PTIT'}
-      </p>
-
-      {isAuthenticated && (
-        <div className="documents-hub-tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={hubTab === 'docs'}
-            className={`documents-hub-tabs__btn ${hubTab === 'docs' ? 'documents-hub-tabs__btn--active' : ''}`}
-            onClick={() => setHubTab('docs')}
-          >
-            <FileTextOutlined /> Tài liệu
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={hubTab === 'notes'}
-            className={`documents-hub-tabs__btn ${hubTab === 'notes' ? 'documents-hub-tabs__btn--active' : ''}`}
-            onClick={() => setHubTab('notes')}
-          >
-            <EditOutlined /> Ghi chú
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={hubTab === 'bookmarks'}
-            className={`documents-hub-tabs__btn ${hubTab === 'bookmarks' ? 'documents-hub-tabs__btn--active' : ''}`}
-            onClick={() => setHubTab('bookmarks')}
-          >
-            <StarOutlined /> Bookmark
-          </button>
+      <div className="documents-page__header">
+        <div className="documents-page__intro">
+          <h1 className="page-title">{pageTitle}</h1>
+          <p className="page-subtitle">
+            {hubTab === 'notes'
+              ? 'Soạn thảo ghi chú và liên kết tài liệu học tập'
+              : hubTab === 'bookmarks'
+                ? 'Quản lý tài liệu đã lưu và xem lại nhanh'
+                : 'Tra cứu và tải xuống tài liệu công khai PTIT'}
+          </p>
         </div>
-      )}
+        {hubTab === 'docs' && (
+          <div className="documents-page__stat">
+            {loading ? 'Đang tải...' : `${total.toLocaleString('vi-VN')} tài liệu`}
+          </div>
+        )}
+      </div>
+
+      <div className={`documents-page__hub-bar ${!isAuthenticated ? 'documents-page__hub-bar--guest' : ''}`}>
+        {isAuthenticated && (
+          <div className="documents-hub-tabs" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={hubTab === 'docs'}
+              className={`documents-hub-tabs__btn ${hubTab === 'docs' ? 'documents-hub-tabs__btn--active' : ''}`}
+              onClick={() => setHubTab('docs')}
+            >
+              <FileTextOutlined /> Tài liệu
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={hubTab === 'notes'}
+              className={`documents-hub-tabs__btn ${hubTab === 'notes' ? 'documents-hub-tabs__btn--active' : ''}`}
+              onClick={() => setHubTab('notes')}
+            >
+              <EditOutlined /> Ghi chú
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={hubTab === 'bookmarks'}
+              className={`documents-hub-tabs__btn ${hubTab === 'bookmarks' ? 'documents-hub-tabs__btn--active' : ''}`}
+              onClick={() => setHubTab('bookmarks')}
+            >
+              <StarOutlined /> Bookmark
+            </button>
+          </div>
+        )}
+
+        {hubTab === 'docs' && (
+          <>
+            <button type="button" className="documents-page__filter-btn" onClick={() => setDrawerOpen(true)}>
+              <FilterOutlined /> Bộ lọc
+            </button>
+            <div className="documents-page__search">
+              <input
+                type="search"
+                placeholder="Tìm theo tên, mô tả hoặc tag..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+              />
+            </div>
+          </>
+        )}
+      </div>
 
       {hubTab === 'docs' && (
         <>
-      <div className="documents-page__toolbar">
-        <button type="button" className="documents-page__filter-btn" onClick={() => setDrawerOpen(true)}>
-          <FilterOutlined /> Bộ lọc
-        </button>
-        <div className="documents-page__search">
-          <input
-            type="search"
-            placeholder="Tìm theo tên, mô tả hoặc tag..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <Breadcrumb items={crumbs} onNavigate={handleBreadcrumb} />
-
       <div className="documents-page__layout">
         <div className={`documents-sidebar-wrap ${drawerOpen ? 'documents-sidebar-wrap--open' : ''}`}>
           {sidebar}
@@ -275,10 +286,8 @@ const DocumentsPage = () => {
           aria-hidden
         />
 
-        <div>
-          <p style={{ marginBottom: 12, color: '#757575', fontSize: '0.9rem' }}>
-            {loading ? 'Đang tải...' : `${total} tài liệu`}
-          </p>
+        <div className="documents-page__main">
+          <Breadcrumb items={crumbs} onNavigate={handleBreadcrumb} />
           <DocumentGrid documents={documents} loading={loading} onCardClick={handleCardClick} />
           <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
         </div>

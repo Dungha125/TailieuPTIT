@@ -21,6 +21,10 @@ class BookmarkCreate(BaseModel):
     folder_id: int | None = None
 
 
+class BookmarkUpdate(BaseModel):
+    folder_id: int | None = None
+
+
 class BookmarkResponse(BaseModel):
     id: int
     document_id: int

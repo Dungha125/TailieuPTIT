@@ -80,7 +80,7 @@ export function UserAuthProvider({ children }) {
 
   const isBookmarked = useCallback((documentId) => bookmarkIds.has(documentId), [bookmarkIds]);
 
-  const toggleBookmark = useCallback(async (documentId) => {
+  const toggleBookmark = useCallback(async (documentId, folderId = null) => {
     if (bookmarkIds.has(documentId)) {
       await userApi.removeBookmark(documentId);
       setBookmarkIds((prev) => {
@@ -90,7 +90,7 @@ export function UserAuthProvider({ children }) {
       });
       return false;
     }
-    await userApi.addBookmark({ document_id: documentId });
+    await userApi.addBookmark({ document_id: documentId, folder_id: folderId ?? undefined });
     setBookmarkIds((prev) => new Set(prev).add(documentId));
     return true;
   }, [bookmarkIds]);

@@ -9,6 +9,7 @@ from app.schemas.bookmark import (
     BookmarkFolderCreate,
     BookmarkFolderResponse,
     BookmarkResponse,
+    BookmarkUpdate,
     DashboardResponse,
 )
 from app.services import bookmark_service
@@ -68,6 +69,20 @@ def add_bookmark(
     db: Session = Depends(get_db),
 ):
     bm = bookmark_service.add_bookmark(db, current_user, payload.document_id, payload.folder_id)
+    from app.models.document import Document
+
+    doc = db.query(Document).filter(Document.id == bm.document_id).first()
+    return bookmark_service.bookmark_to_dict(bm, doc)
+
+
+@router.put("/bookmarks/{document_id}", response_model=BookmarkResponse)
+def update_bookmark(
+    document_id: int,
+    payload: BookmarkUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    bm = bookmark_service.update_bookmark(db, current_user, document_id, payload.folder_id)
     from app.models.document import Document
 
     doc = db.query(Document).filter(Document.id == bm.document_id).first()

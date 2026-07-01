@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Button, Input, List, message, Popconfirm, Spin, Tag } from 'antd';
+import { Button, Input, List, message, Popconfirm, Select, Spin, Tag } from 'antd';
 import {
   DeleteOutlined,
   FolderOutlined,
@@ -92,6 +92,19 @@ const BookmarksWorkspace = () => {
     }
   };
 
+  const handleMoveBookmark = async (documentId, targetFolderId) => {
+    try {
+      await userApi.moveBookmark(documentId, targetFolderId);
+      await refreshBookmarks();
+      loadBookmarks();
+      message.success('Đã chuyển thư mục');
+    } catch {
+      message.error('Không chuyển được thư mục');
+    }
+  };
+
+  const folderName = (id) => folders.find((f) => f.id === id)?.name;
+
   return (
     <div className="bookmarks-workspace">
       <aside className="bookmarks-sidebar">
@@ -149,7 +162,7 @@ const BookmarksWorkspace = () => {
             <Spin />
           ) : bookmarks.length === 0 ? (
             <div className="bookmarks-empty">
-              Chưa có bookmark. Bấm nút sao trên thẻ tài liệu để lưu.
+              Chưa có bookmark trong mục này. Bấm nút sao trên thẻ tài liệu và chọn thư mục để lưu.
             </div>
           ) : (
             <List
@@ -157,6 +170,16 @@ const BookmarksWorkspace = () => {
               renderItem={(item) => (
                 <List.Item
                   actions={[
+                    <Select
+                      key="folder"
+                      size="small"
+                      placeholder="Thư mục"
+                      allowClear
+                      style={{ minWidth: 140 }}
+                      value={item.folder_id ?? undefined}
+                      options={folders.map((f) => ({ value: f.id, label: f.name }))}
+                      onChange={(v) => handleMoveBookmark(item.document_id, v ?? null)}
+                    />,
                     <Button
                       key="open"
                       type="link"
@@ -177,7 +200,12 @@ const BookmarksWorkspace = () => {
                   <List.Item.Meta
                     title={<Link to={docHref(item)}>{item.document_title || 'Tài liệu'}</Link>}
                     description={
-                      <Tag>{item.file_type?.toUpperCase()}</Tag>
+                      <>
+                        <Tag>{item.file_type?.toUpperCase()}</Tag>
+                        {item.folder_id && folderId === null && (
+                          <Tag color="gold">{folderName(item.folder_id)}</Tag>
+                        )}
+                      </>
                     }
                   />
                 </List.Item>

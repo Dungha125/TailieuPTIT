@@ -74,6 +74,16 @@ def add_bookmark(db: Session, user: User, document_id: int, folder_id: int | Non
         .first()
     )
     if existing:
+        if folder_id is not None:
+            if folder_id:
+                folder = db.query(BookmarkFolder).filter(
+                    BookmarkFolder.id == folder_id, BookmarkFolder.user_id == user.id
+                ).first()
+                if not folder:
+                    raise HTTPException(status_code=404, detail="Thư mục bookmark không tồn tại")
+            existing.folder_id = folder_id
+            db.commit()
+            db.refresh(existing)
         return existing
     if folder_id:
         folder = db.query(BookmarkFolder).filter(BookmarkFolder.id == folder_id, BookmarkFolder.user_id == user.id).first()
@@ -81,6 +91,26 @@ def add_bookmark(db: Session, user: User, document_id: int, folder_id: int | Non
             raise HTTPException(status_code=404, detail="Thư mục bookmark không tồn tại")
     bm = DocumentBookmark(user_id=user.id, document_id=document_id, folder_id=folder_id)
     db.add(bm)
+    db.commit()
+    db.refresh(bm)
+    return bm
+
+
+def update_bookmark(db: Session, user: User, document_id: int, folder_id: int | None) -> DocumentBookmark:
+    bm = (
+        db.query(DocumentBookmark)
+        .filter(DocumentBookmark.user_id == user.id, DocumentBookmark.document_id == document_id)
+        .first()
+    )
+    if not bm:
+        raise HTTPException(status_code=404, detail="Bookmark không tồn tại")
+    if folder_id:
+        folder = db.query(BookmarkFolder).filter(
+            BookmarkFolder.id == folder_id, BookmarkFolder.user_id == user.id
+        ).first()
+        if not folder:
+            raise HTTPException(status_code=404, detail="Thư mục bookmark không tồn tại")
+    bm.folder_id = folder_id
     db.commit()
     db.refresh(bm)
     return bm

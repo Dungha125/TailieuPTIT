@@ -186,6 +186,8 @@ export const userApi = {
   bookmarkIds: () => api.get('/bookmarks/ids'),
   bookmarks: (folderId) => api.get('/bookmarks', { params: { folder_id: folderId || undefined } }),
   addBookmark: (data) => api.post('/bookmarks', data),
+  moveBookmark: (documentId, folderId) =>
+    api.put(`/bookmarks/${documentId}`, { folder_id: folderId ?? null }),
   removeBookmark: (documentId) => api.delete(`/bookmarks/${documentId}`),
   bookmarkFolders: () => api.get('/bookmarks/folders'),
   createBookmarkFolder: (name) => api.post('/bookmarks/folders', { name }),
