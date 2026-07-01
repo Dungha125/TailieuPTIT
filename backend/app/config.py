@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "super-secret-jwt-key-change-in-production"
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 480
+    jwt_refresh_days: int = 7
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
     trusted_hosts: str = "*"
     max_file_size_mb: int = 50
@@ -64,6 +65,18 @@ class Settings(BaseSettings):
     # SEO
     site_url: str = "http://localhost:5173"
     site_name: str = "TailieuPTIT"
+
+    # Email (SMTP)
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    smtp_use_tls: bool = True
+    frontend_url: str = "http://localhost:5173"
+
+    # Registration
+    require_email_verification: bool = False
 
     class Config:
         env_file = ".env"

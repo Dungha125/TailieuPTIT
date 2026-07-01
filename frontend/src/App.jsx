@@ -7,11 +7,18 @@ import PublicNavbar from './components/PublicNavbar';
 import AdminLayout from './components/admin/AdminLayout';
 import ProtectedRoute from './components/admin/ProtectedRoute';
 import AdminOnlyRoute from './components/admin/AdminOnlyRoute';
+import ProtectedUserRoute from './components/ProtectedUserRoute';
 import { AuthProvider } from './context/AuthContext';
+import { UserAuthProvider } from './context/UserAuthContext';
 import HomePage from './pages/HomePage';
 import DocumentsPage from './pages/DocumentsPage';
 import SearchPage from './pages/SearchPage';
 import DocumentDetailPage from './pages/DocumentDetailPage';
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
+import VerifyEmailPage from './pages/auth/VerifyEmailPage';
 
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
 const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
@@ -20,6 +27,9 @@ const AdminTagsPage = lazy(() => import('./pages/admin/AdminTagsPage'));
 const AdminFilesPage = lazy(() => import('./pages/admin/AdminFilesPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminStatisticsPage = lazy(() => import('./pages/admin/AdminStatisticsPage'));
+const UserDashboard = lazy(() => import('./pages/user/DashboardPage'));
+const NotesPage = lazy(() => import('./pages/user/NotesPage'));
+const ProfilePage = lazy(() => import('./pages/user/ProfilePage'));
 
 const theme = {
   token: {
@@ -49,47 +59,72 @@ function App() {
       <ConfigProvider theme={theme} locale={viVN}>
         <AntApp>
           <BrowserRouter>
-            <AuthProvider>
-            <Suspense fallback={<PageLoader />}>
-              <Routes>
-                <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
-                <Route path="/documents" element={<PublicLayout><DocumentsPage /></PublicLayout>} />
-                <Route path="/danh-muc/:tagSlug" element={<PublicLayout><DocumentsPage /></PublicLayout>} />
-                <Route path="/tai-lieu/:slug" element={<PublicLayout><DocumentDetailPage /></PublicLayout>} />
-                <Route
-                  path="/documents/:id"
-                  element={<PublicLayout><DocumentDetailPage legacyId /></PublicLayout>}
-                />
-                <Route path="/search" element={<PublicLayout><SearchPage /></PublicLayout>} />
+            <UserAuthProvider>
+              <AuthProvider>
+                <Suspense fallback={<PageLoader />}>
+                  <Routes>
+                    <Route path="/" element={<PublicLayout><HomePage /></PublicLayout>} />
+                    <Route path="/documents" element={<PublicLayout><DocumentsPage /></PublicLayout>} />
+                    <Route path="/danh-muc/:tagSlug" element={<PublicLayout><DocumentsPage /></PublicLayout>} />
+                    <Route path="/tai-lieu/:slug" element={<PublicLayout><DocumentDetailPage /></PublicLayout>} />
+                    <Route
+                      path="/documents/:id"
+                      element={<PublicLayout><DocumentDetailPage legacyId /></PublicLayout>}
+                    />
+                    <Route path="/search" element={<PublicLayout><SearchPage /></PublicLayout>} />
 
-                <Route path="/internal-admin-portal/login" element={<AdminLoginPage />} />
-                <Route
-                  path="/internal-admin-portal"
-                  element={
-                    <ProtectedRoute>
-                      <AdminLayout />
-                    </ProtectedRoute>
-                  }
-                >
-                  <Route index element={<AdminDashboard />} />
-                  <Route path="files" element={<AdminFilesPage />} />
-                  <Route path="tags" element={<AdminTagsPage />} />
-                  <Route path="upload" element={<AdminUploadPage />} />
-                  <Route
-                    path="users"
-                    element={
-                      <AdminOnlyRoute>
-                        <AdminUsersPage />
-                      </AdminOnlyRoute>
-                    }
-                  />
-                  <Route path="statistics" element={<AdminStatisticsPage />} />
-                </Route>
+                    <Route path="/login" element={<PublicLayout><LoginPage /></PublicLayout>} />
+                    <Route path="/register" element={<PublicLayout><RegisterPage /></PublicLayout>} />
+                    <Route path="/forgot-password" element={<PublicLayout><ForgotPasswordPage /></PublicLayout>} />
+                    <Route path="/reset-password" element={<PublicLayout><ResetPasswordPage /></PublicLayout>} />
+                    <Route path="/verify-email" element={<PublicLayout><VerifyEmailPage /></PublicLayout>} />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
-            </AuthProvider>
+                    <Route
+                      path="/app/dashboard"
+                      element={<ProtectedUserRoute><UserDashboard /></ProtectedUserRoute>}
+                    />
+                    <Route
+                      path="/app/notes"
+                      element={<ProtectedUserRoute><NotesPage /></ProtectedUserRoute>}
+                    />
+                    <Route
+                      path="/app/notes/:noteId"
+                      element={<ProtectedUserRoute><NotesPage /></ProtectedUserRoute>}
+                    />
+                    <Route
+                      path="/app/profile"
+                      element={<ProtectedUserRoute><ProfilePage /></ProtectedUserRoute>}
+                    />
+
+                    <Route path="/internal-admin-portal/login" element={<AdminLoginPage />} />
+                    <Route
+                      path="/internal-admin-portal"
+                      element={
+                        <ProtectedRoute>
+                          <AdminLayout />
+                        </ProtectedRoute>
+                      }
+                    >
+                      <Route index element={<AdminDashboard />} />
+                      <Route path="files" element={<AdminFilesPage />} />
+                      <Route path="tags" element={<AdminTagsPage />} />
+                      <Route path="upload" element={<AdminUploadPage />} />
+                      <Route
+                        path="users"
+                        element={
+                          <AdminOnlyRoute>
+                            <AdminUsersPage />
+                          </AdminOnlyRoute>
+                        }
+                      />
+                      <Route path="statistics" element={<AdminStatisticsPage />} />
+                    </Route>
+
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                  </Routes>
+                </Suspense>
+              </AuthProvider>
+            </UserAuthProvider>
           </BrowserRouter>
         </AntApp>
       </ConfigProvider>

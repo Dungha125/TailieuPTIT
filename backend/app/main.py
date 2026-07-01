@@ -14,10 +14,10 @@ from app.middleware import (
     RequestLoggingMiddleware,
     SecurityHeadersMiddleware,
 )
-from app.models import document, tag, user  # noqa: F401
+from app.models import bookmark, document, note, tag, user  # noqa: F401
 from app.models.tag import Tag
 from app.models.user import User
-from app.routers import admin, auth, documents, seo
+from app.routers import admin, auth, bookmarks, documents, notes, seo
 from app.services.document_service import get_or_create_unclassified_tag
 from app.services.minio_service import minio_service
 from app.utils.security import hash_password
@@ -114,6 +114,8 @@ def create_app() -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(documents.router)
+    app.include_router(notes.router)
+    app.include_router(bookmarks.router)
     app.include_router(admin.router)
     app.include_router(seo.router)
 
@@ -161,6 +163,18 @@ def create_app() -> FastAPI:
             run_tag_migrations(db)
         except Exception as e:
             logger.error("Tag migration failed: %s", e)
+            db.rollback()
+        finally:
+            db.close()
+
+        db = SessionLocal()
+        try:
+            from app.services.user_migrations import run_notes_migrations, run_user_migrations
+
+            run_user_migrations(db)
+            run_notes_migrations(db)
+        except Exception as e:
+            logger.error("User/notes migration failed: %s", e)
             db.rollback()
         finally:
             db.close()

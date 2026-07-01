@@ -8,6 +8,7 @@ import {
 } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { useUserAuth } from '../context/UserAuthContext';
 
 const { Search } = Input;
 
@@ -19,6 +20,7 @@ const NAV_LINKS = [
 const PublicNavbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useUserAuth();
   const [query, setQuery] = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -83,6 +85,25 @@ const PublicNavbar = () => {
               onSearch={handleSearch}
               enterButton={<SearchOutlined />}
             />
+          </div>
+          <div className="public-navbar__auth public-navbar__auth--desktop">
+            {isAuthenticated ? (
+              <>
+                <Link to="/app/dashboard" className="public-navbar__auth-link">
+                  {user?.full_name || 'Tài khoản'}
+                </Link>
+                <Button type="text" size="small" onClick={() => logout().then(() => navigate('/'))}>
+                  Thoát
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="public-navbar__auth-link">Đăng nhập</Link>
+                <Link to="/register">
+                  <Button type="primary" size="small" className="btn-gradient">Đăng ký</Button>
+                </Link>
+              </>
+            )}
           </div>
           <button
             type="button"

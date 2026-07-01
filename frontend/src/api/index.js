@@ -52,8 +52,14 @@ function tryParseJsonString(data) {
   }
 }
 
+const getAuthToken = () => {
+  const isAdminPath = window.location.pathname.startsWith('/internal-admin-portal');
+  if (isAdminPath) return localStorage.getItem('admin_token');
+  return localStorage.getItem('user_token') || localStorage.getItem('admin_token');
+};
+
 api.interceptors.request.use(async (config) => {
-  const token = localStorage.getItem('admin_token');
+  const token = getAuthToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -100,9 +106,14 @@ api.interceptors.response.use(async (res) => {
   const status = error.response?.status;
 
   if (status === 401) {
-    localStorage.removeItem('admin_token');
-    if (window.location.pathname.startsWith('/internal-admin-portal')) {
+    const path = window.location.pathname;
+    if (path.startsWith('/internal-admin-portal')) {
+      localStorage.removeItem('admin_token');
       window.location.href = '/internal-admin-portal/login';
+    } else if (path.startsWith('/app')) {
+      localStorage.removeItem('user_token');
+      localStorage.removeItem('user_refresh_token');
+      window.location.href = '/login?next=' + encodeURIComponent(path);
     }
   }
 
@@ -141,6 +152,44 @@ export const authApi = {
   login: (username, password, captchaToken = null) =>
     api.post('/auth/login', { username, password, captcha_token: captchaToken }),
   me: () => api.get('/auth/me'),
+};
+
+export const userAuthApi = {
+  register: (data) => api.post('/auth/register', data),
+  login: (username, password, captchaToken = null) =>
+    api.post('/auth/login/user', { username, password, captcha_token: captchaToken }),
+  refresh: (refreshToken) => api.post('/auth/refresh', { refresh_token: refreshToken }),
+  logout: (refreshToken) => api.post('/auth/logout', { refresh_token: refreshToken }),
+  forgotPassword: (username) => api.post('/auth/forgot-password', { username }),
+  resetPassword: (data) => api.post('/auth/reset-password', data),
+  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
+  me: () => api.get('/auth/me'),
+  updateProfile: (data) => api.patch('/auth/me', data),
+};
+
+export const notesApi = {
+  folders: () => api.get('/notes/folders'),
+  createFolder: (data) => api.post('/notes/folders', data),
+  updateFolder: (id, data) => api.put(`/notes/folders/${id}`, data),
+  reorderFolders: (items) => api.put('/notes/folders/reorder', { items }),
+  deleteFolder: (id) => api.delete(`/notes/folders/${id}`),
+  list: (params) => api.get('/notes', { params }),
+  get: (id) => api.get(`/notes/${id}`),
+  create: (data) => api.post('/notes', data),
+  update: (id, data) => api.put(`/notes/${id}`, data),
+  delete: (id, permanent = false) => api.delete(`/notes/${id}`, { params: { permanent } }),
+  addLink: (noteId, data) => api.post(`/notes/${noteId}/links`, data),
+};
+
+export const userApi = {
+  dashboard: () => api.get('/me/dashboard'),
+  bookmarks: (folderId) => api.get('/bookmarks', { params: { folder_id: folderId || undefined } }),
+  addBookmark: (data) => api.post('/bookmarks', data),
+  removeBookmark: (documentId) => api.delete(`/bookmarks/${documentId}`),
+  bookmarkFolders: () => api.get('/bookmarks/folders'),
+  createBookmarkFolder: (name) => api.post('/bookmarks/folders', { name }),
+  deleteBookmarkFolder: (id) => api.delete(`/bookmarks/folders/${id}`),
+  recordView: (documentId) => api.post(`/documents/${documentId}/view`),
 };
 
 export const documentsApi = {
