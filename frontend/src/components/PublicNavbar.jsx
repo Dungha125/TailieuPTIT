@@ -8,6 +8,7 @@ import {
   UserOutlined,
   EditOutlined,
   LogoutOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -50,6 +51,11 @@ const PublicNavbar = () => {
   const userInitial = (user?.full_name || user?.username || '?').charAt(0).toUpperCase();
 
   const userMenuItems = [
+    {
+      key: 'bookmarks',
+      icon: <StarOutlined />,
+      label: <Link to="/documents?tab=bookmarks">Bookmark của tôi</Link>,
+    },
     {
       key: 'notes',
       icon: <EditOutlined />,
@@ -190,6 +196,10 @@ const PublicNavbar = () => {
                   <div className="public-navbar__drawer-user-id">@{user?.username}</div>
                 </div>
               </div>
+              <Link to="/documents?tab=bookmarks" className="public-navbar__drawer-link" onClick={closeMenu}>
+                <StarOutlined />
+                <span>Bookmark của tôi</span>
+              </Link>
               <Link to="/documents?tab=notes" className="public-navbar__drawer-link" onClick={closeMenu}>
                 <EditOutlined />
                 <span>Ghi chú của tôi</span>

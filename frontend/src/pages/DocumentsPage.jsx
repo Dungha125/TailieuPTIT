@@ -1,4 +1,4 @@
-import { FilterOutlined, FileTextOutlined, EditOutlined } from '@ant-design/icons';
+import { FilterOutlined, FileTextOutlined, EditOutlined, StarOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { documentsApi } from '../api';
@@ -7,6 +7,7 @@ import DocumentGrid from '../components/documents/DocumentGrid';
 import Pagination from '../components/documents/Pagination';
 import SidebarTree from '../components/documents/SidebarTree';
 import NotesWorkspace from '../components/notes/NotesWorkspace';
+import BookmarksWorkspace from '../components/bookmarks/BookmarksWorkspace';
 import PreviewModal from '../components/PreviewModal';
 import SeoHead from '../seo/SeoHead';
 import { breadcrumbSchema, collectionPageSchema } from '../seo/schema';
@@ -29,7 +30,9 @@ const DocumentsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const { isAuthenticated, loading: authLoading } = useUserAuth();
-  const hubTab = searchParams.get('tab') === 'notes' ? 'notes' : 'docs';
+  const hubTabParam = searchParams.get('tab');
+  const hubTab =
+    hubTabParam === 'notes' ? 'notes' : hubTabParam === 'bookmarks' ? 'bookmarks' : 'docs';
   const noteId = searchParams.get('note');
   const parsed = parseFilterFromSearchParams(searchParams);
   const filter = useMemo(
@@ -70,14 +73,17 @@ const DocumentsPage = () => {
   );
 
   const setHubTab = (tab) => {
-    if (tab === 'notes' && !isAuthenticated) {
-      navigate(`/login?redirect=${encodeURIComponent('/documents?tab=notes')}`);
+    if ((tab === 'notes' || tab === 'bookmarks') && !isAuthenticated) {
+      navigate(`/login?redirect=${encodeURIComponent(`/documents?tab=${tab}`)}`);
       return;
     }
     const params = buildFilterSearchParams(filter, page, debouncedQ);
-    if (tab === 'notes') {
-      params.set('tab', 'notes');
-      if (noteId) params.set('note', noteId);
+    params.delete('note');
+    if (tab === 'docs') {
+      params.delete('tab');
+    } else {
+      params.set('tab', tab);
+      if (tab === 'notes' && noteId) params.set('note', noteId);
     }
     setSearchParams(params, { replace: true });
   };
@@ -91,8 +97,8 @@ const DocumentsPage = () => {
   };
 
   useEffect(() => {
-    if (hubTab === 'notes' && !authLoading && !isAuthenticated) {
-      navigate(`/login?redirect=${encodeURIComponent('/documents?tab=notes')}`);
+    if ((hubTab === 'notes' || hubTab === 'bookmarks') && !authLoading && !isAuthenticated) {
+      navigate(`/login?redirect=${encodeURIComponent(`/documents?tab=${hubTab}`)}`);
     }
   }, [hubTab, authLoading, isAuthenticated, navigate]);
 
@@ -105,7 +111,7 @@ const DocumentsPage = () => {
   }, []);
 
   useEffect(() => {
-    if (hubTab === 'notes') return;
+    if (hubTab !== 'docs') return;
     setLoading(true);
     documentsApi
       .browse({
@@ -167,11 +173,14 @@ const DocumentsPage = () => {
     }
   };
 
-  const pageTitle = hubTab === 'notes'
-    ? 'Ghi chú của tôi'
-    : crumbs.length > 1
-      ? crumbs[crumbs.length - 1].label
-      : 'Danh sách tài liệu';
+  const pageTitle =
+    hubTab === 'notes'
+      ? 'Ghi chú của tôi'
+      : hubTab === 'bookmarks'
+        ? 'Bookmark của tôi'
+        : crumbs.length > 1
+          ? crumbs[crumbs.length - 1].label
+          : 'Danh sách tài liệu';
   const seoPath = `/documents${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
 
   const sidebar = (
@@ -201,7 +210,9 @@ const DocumentsPage = () => {
       <p className="page-subtitle">
         {hubTab === 'notes'
           ? 'Soạn thảo ghi chú và liên kết tài liệu học tập'
-          : 'Tra cứu và tải xuống tài liệu công khai PTIT'}
+          : hubTab === 'bookmarks'
+            ? 'Quản lý tài liệu đã lưu và xem lại nhanh'
+            : 'Tra cứu và tải xuống tài liệu công khai PTIT'}
       </p>
 
       {isAuthenticated && (
@@ -223,6 +234,15 @@ const DocumentsPage = () => {
             onClick={() => setHubTab('notes')}
           >
             <EditOutlined /> Ghi chú
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={hubTab === 'bookmarks'}
+            className={`documents-hub-tabs__btn ${hubTab === 'bookmarks' ? 'documents-hub-tabs__btn--active' : ''}`}
+            onClick={() => setHubTab('bookmarks')}
+          >
+            <StarOutlined /> Bookmark
           </button>
         </div>
       )}
@@ -269,6 +289,8 @@ const DocumentsPage = () => {
       {hubTab === 'notes' && isAuthenticated && (
         <NotesWorkspace noteId={noteId} onSelectNote={openNote} />
       )}
+
+      {hubTab === 'bookmarks' && isAuthenticated && <BookmarksWorkspace />}
 
       <PreviewModal
         document={previewDoc}

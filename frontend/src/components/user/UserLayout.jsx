@@ -6,12 +6,14 @@ import {
   UserOutlined,
   LogoutOutlined,
   MenuOutlined,
+  StarOutlined,
 } from '@ant-design/icons';
 import { useState } from 'react';
 import { useUserAuth } from '../../context/UserAuthContext';
 
 const NAV = [
   { path: '/documents', icon: <DashboardOutlined />, label: 'Tài liệu' },
+  { path: '/documents?tab=bookmarks', icon: <StarOutlined />, label: 'Bookmark' },
   { path: '/documents?tab=notes', icon: <EditOutlined />, label: 'Ghi chú' },
   { path: '/app/profile', icon: <UserOutlined />, label: 'Hồ sơ' },
 ];

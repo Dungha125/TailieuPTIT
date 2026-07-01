@@ -29,12 +29,15 @@ import {
 import { documentsApi } from '../../api';
 import { DocumentLink } from './DocumentLinkExtension';
 import { flattenFolders } from './folderUtils';
+import { normalizeLinkUrl, openNoteLink } from './linkUtils';
 import { useDebouncedValue } from '../../utils/useDebouncedValue';
 
 const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange }) => {
   const navigate = useNavigate();
   const [title, setTitle] = useState(note?.title || '');
   const [linkOpen, setLinkOpen] = useState(false);
+  const [urlLinkOpen, setUrlLinkOpen] = useState(false);
+  const [urlInput, setUrlInput] = useState('');
   const [docQuery, setDocQuery] = useState('');
   const [docResults, setDocResults] = useState([]);
   const debouncedQ = useDebouncedValue(docQuery);
@@ -47,11 +50,7 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
       if (!href || href === '#') return false;
       event.preventDefault();
       event.stopPropagation();
-      if (event.ctrlKey || event.metaKey || event.button === 1) {
-        window.open(href, '_blank', 'noopener,noreferrer');
-      } else {
-        navigate(href);
-      }
+      openNoteLink(href, { navigate, event });
       return true;
     },
     [navigate]
@@ -62,7 +61,12 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
       StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
       Underline,
       Highlight,
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'note-link' } }),
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+        HTMLAttributes: { class: 'note-link', rel: 'noopener noreferrer', target: '_blank' },
+      }),
       Placeholder.configure({ placeholder: 'Bắt đầu viết ghi chú...' }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -135,6 +139,29 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
     [editor]
   );
 
+  const applyUrlLink = useCallback(() => {
+    if (!editor || !urlInput.trim()) return;
+    const href = normalizeLinkUrl(urlInput);
+    const label = urlInput.trim();
+    const { from, to } = editor.state.selection;
+
+    if (from === to) {
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: 'text',
+          marks: [{ type: 'link', attrs: { href, target: '_blank', rel: 'noopener noreferrer' } }],
+          text: label,
+        })
+        .run();
+    } else {
+      editor.chain().focus().setLink({ href, target: '_blank', rel: 'noopener noreferrer' }).run();
+    }
+    setUrlLinkOpen(false);
+    setUrlInput('');
+  }, [editor, urlInput]);
+
   if (!editor) return null;
 
   const folderOptions = flattenFolders(folders).map((f) => ({ value: f.id, label: f.label }));
@@ -165,7 +192,7 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
           options={folderOptions}
           onChange={(value) => onFolderChange?.(value ?? null)}
         />
-        <span className="note-editor__meta-hint">Ctrl + click để mở liên kết trong tab mới</span>
+        <span className="note-editor__meta-hint">Link ngoài mở tab mới · Ctrl+click mở tab mới (link nội bộ)</span>
       </div>
       <div className="note-editor__toolbar">
         {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <BoldOutlined />)}
@@ -176,10 +203,7 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
         {btn(editor.isActive('orderedList'), () => editor.chain().focus().toggleOrderedList().run(), <OrderedListOutlined />)}
         {btn(false, () => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(), <TableOutlined />)}
         {btn(false, () => setLinkOpen(true), <FileTextOutlined />)}
-        {btn(false, () => {
-          const url = window.prompt('URL');
-          if (url) editor.chain().focus().setLink({ href: url }).run();
-        }, <LinkOutlined />)}
+        {btn(false, () => setUrlLinkOpen(true), <LinkOutlined />)}
       </div>
       <EditorContent editor={editor} className="note-editor__content" />
 
@@ -211,6 +235,28 @@ const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange 
               </div>
             </List.Item>
           )}
+        />
+      </Modal>
+
+      <Modal
+        title="Chèn liên kết web"
+        open={urlLinkOpen}
+        onCancel={() => {
+          setUrlLinkOpen(false);
+          setUrlInput('');
+        }}
+        onOk={applyUrlLink}
+        okText="Chèn"
+        cancelText="Hủy"
+      >
+        <p style={{ color: '#757575', marginBottom: 12 }}>
+          Nhập URL đầy đủ (https://...) hoặc tên miền. Nếu đã bôi đen chữ, liên kết sẽ gắn vào đoạn đó.
+        </p>
+        <Input
+          placeholder="https://example.com"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          onPressEnter={applyUrlLink}
         />
       </Modal>
     </div>
