@@ -183,6 +183,7 @@ export const notesApi = {
 
 export const userApi = {
   dashboard: () => api.get('/me/dashboard'),
+  bookmarkIds: () => api.get('/bookmarks/ids'),
   bookmarks: (folderId) => api.get('/bookmarks', { params: { folder_id: folderId || undefined } }),
   addBookmark: (data) => api.post('/bookmarks', data),
   removeBookmark: (documentId) => api.delete(`/bookmarks/${documentId}`),

@@ -27,7 +27,6 @@ const AdminTagsPage = lazy(() => import('./pages/admin/AdminTagsPage'));
 const AdminFilesPage = lazy(() => import('./pages/admin/AdminFilesPage'));
 const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
 const AdminStatisticsPage = lazy(() => import('./pages/admin/AdminStatisticsPage'));
-const UserDashboard = lazy(() => import('./pages/user/DashboardPage'));
 const NotesPage = lazy(() => import('./pages/user/NotesPage'));
 const ProfilePage = lazy(() => import('./pages/user/ProfilePage'));
 
@@ -81,15 +80,15 @@ function App() {
 
                     <Route
                       path="/app/dashboard"
-                      element={<ProtectedUserRoute><UserDashboard /></ProtectedUserRoute>}
+                      element={<Navigate to="/documents" replace />}
                     />
                     <Route
                       path="/app/notes"
-                      element={<ProtectedUserRoute><NotesPage /></ProtectedUserRoute>}
+                      element={<Navigate to="/documents?tab=notes" replace />}
                     />
                     <Route
                       path="/app/notes/:noteId"
-                      element={<ProtectedUserRoute><NotesPage /></ProtectedUserRoute>}
+                      element={<NotesPage />}
                     />
                     <Route
                       path="/app/profile"

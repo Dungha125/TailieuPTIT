@@ -94,11 +94,21 @@ const AdminFilesPage = () => {
     let result = documents;
     const q = filters.search.trim().toLowerCase();
     if (q) {
-      result = result.filter(
-        (d) =>
-          d.title?.toLowerCase().includes(q) ||
-          d.description?.toLowerCase().includes(q)
-      );
+      result = result.filter((d) => {
+        const haystack = [
+          d.title,
+          d.description,
+          d.tags?.faculty,
+          d.tags?.subject,
+          d.tags?.type,
+          d.tags?.year,
+          ...(d.legacy_tags?.map((t) => t.name) || []),
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+        return haystack.includes(q);
+      });
     }
     if (filters.tagId) {
       result = result.filter((d) => d.legacy_tags?.some((t) => t.id === filters.tagId));

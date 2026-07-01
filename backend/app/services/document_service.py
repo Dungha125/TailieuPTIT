@@ -97,8 +97,22 @@ def paginate_documents(
 
     if search:
         pattern = f"%{search}%"
+        tag_doc_ids = (
+            db.query(Document.id)
+            .join(Document.tags)
+            .filter(Tag.name.ilike(pattern))
+            .distinct()
+        )
         query = query.filter(
-            or_(Document.title.ilike(pattern), Document.description.ilike(pattern))
+            or_(
+                Document.title.ilike(pattern),
+                Document.description.ilike(pattern),
+                Document.tag_faculty.ilike(pattern),
+                Document.tag_subject.ilike(pattern),
+                Document.tag_doc_type.ilike(pattern),
+                Document.tag_year.ilike(pattern),
+                Document.id.in_(tag_doc_ids),
+            )
         )
 
     total = query.count()

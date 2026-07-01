@@ -89,7 +89,7 @@ const SearchPage = () => {
 
       <div className="search-bar">
         <Search
-          placeholder="Tìm kiếm theo tên tài liệu..."
+          placeholder="Tìm theo tên, mô tả hoặc tag..."
           enterButton={<><SearchOutlined /> Tìm kiếm</>}
           size="large"
           value={query}

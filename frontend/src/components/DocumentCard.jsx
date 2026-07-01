@@ -1,9 +1,13 @@
 import { Tag } from 'antd';
+import BookmarkButton from './BookmarkButton';
 
 const DocumentCard = ({ document, onClick }) => {
   return (
     <div className="doc-card" onClick={() => onClick?.(document)}>
-      <div className="doc-card-title">{document.title}</div>
+      <div className="doc-card__header">
+        <div className="doc-card-title">{document.title}</div>
+        <BookmarkButton documentId={document.id} />
+      </div>
       <div className="doc-card-meta">
         <span>{document.file_type?.toUpperCase()}</span>
         <span>•</span>

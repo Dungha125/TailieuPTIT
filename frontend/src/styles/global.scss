@@ -161,6 +161,45 @@ a {
   gap: 4px;
 }
 
+.doc-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  .doc-card-title {
+    margin-bottom: 0;
+    flex: 1;
+  }
+}
+
+.bookmark-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: #fff;
+  color: #9e9e9e;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+
+  &:hover {
+    border-color: #ffb300;
+    color: #ffb300;
+    background: #fff8e1;
+  }
+
+  &--saved {
+    border-color: #ffb300;
+    background: #fff8e1;
+  }
+}
+
 .search-bar {
   margin-bottom: 24px;
 }
@@ -348,6 +387,174 @@ a {
   &__drawer-practice {
     margin-top: 8px;
     border: 1px solid var(--border-color);
+  }
+
+  &__auth--desktop {
+    display: flex;
+    align-items: center;
+  }
+
+  &__auth-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  &__auth-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+
+    &--login {
+      color: #fff;
+      background: transparent;
+
+      &:hover {
+        background: rgba(255, 255, 255, 0.12);
+        color: #fff;
+      }
+    }
+
+    &--register {
+      color: var(--primary);
+      background: #fff;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+
+      &:hover {
+        background: #fff5f5;
+        color: var(--primary);
+      }
+    }
+  }
+
+  &__user-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    height: 40px;
+    padding: 4px 12px 4px 4px;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.15);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.22);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  &__user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #fff;
+    color: var(--primary);
+    font-weight: 700;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  &__user-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+
+  &__drawer-auth {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__drawer-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    background: #fafafa;
+  }
+
+  &__drawer-user-name {
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  &__drawer-user-id {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  &__drawer-auth-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .public-navbar__auth-btn {
+      width: 100%;
+      height: 44px;
+      font-size: 0.95rem;
+
+      &--login {
+        color: var(--primary);
+        background: #fff;
+        border: 1px solid var(--border-color);
+      }
+
+      &--register {
+        background: var(--primary);
+        color: #fff;
+      }
+    }
+  }
+
+  &__drawer-logout {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: #d32f2f;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background: rgba(211, 47, 47, 0.08);
+    }
+  }
+
+  @media (max-width: 900px) {
+    &__auth--desktop {
+      display: none;
+    }
   }
 
   @media (max-width: 900px) {

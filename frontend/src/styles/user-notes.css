@@ -126,6 +126,11 @@
   min-height: calc(100vh - 120px);
 }
 
+.notes-workspace--embedded {
+  min-height: calc(100vh - 280px);
+  margin-top: 8px;
+}
+
 @media (max-width: 1024px) {
   .notes-workspace {
     grid-template-columns: 1fr;
@@ -240,6 +245,31 @@
   padding: 16px 20px 8px !important;
 }
 
+.note-editor__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 20px 12px;
+  border-bottom: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+}
+
+.note-editor__meta-icon {
+  color: #c62828;
+}
+
+.note-editor__folder {
+  min-width: 200px;
+  max-width: 320px;
+  flex: 1;
+}
+
+.note-editor__meta-hint {
+  font-size: 0.75rem;
+  color: #9e9e9e;
+  margin-left: auto;
+}
+
 .note-editor__toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -264,9 +294,49 @@
   cursor: pointer;
 }
 
+.note-editor__content .doc-link:hover {
+  color: #b71c1c;
+}
+
+.note-editor__content .note-link {
+  color: #1565c0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .note-editor__content .doc-link--unavailable {
   color: #9e9e9e;
   text-decoration: line-through;
+}
+
+.note-editor__content .ProseMirror .tableWrapper {
+  overflow-x: auto;
+  margin: 12px 0;
+}
+
+.note-editor__content .ProseMirror table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0;
+}
+
+.note-editor__content .ProseMirror th,
+.note-editor__content .ProseMirror td {
+  border: 1px solid #b0bec5;
+  padding: 8px 10px;
+  vertical-align: top;
+  box-sizing: border-box;
+  min-width: 80px;
+}
+
+.note-editor__content .ProseMirror th {
+  background: #f5f5f5;
+  font-weight: 600;
+}
+
+.note-editor__content .ProseMirror .selectedCell::after {
+  background: rgba(198, 40, 40, 0.12);
 }
 
 .notes-load-more {

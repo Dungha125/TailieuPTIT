@@ -12,7 +12,8 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Image from '@tiptap/extension-image';
 import { useCallback, useEffect, useState } from 'react';
-import { Button, Input, Modal, List, Tag } from 'antd';
+import { useNavigate } from 'react-router-dom';
+import { Button, Input, Modal, List, Tag, Select } from 'antd';
 import {
   BoldOutlined,
   ItalicOutlined,
@@ -23,28 +24,52 @@ import {
   TableOutlined,
   HighlightOutlined,
   FileTextOutlined,
+  FolderOutlined,
 } from '@ant-design/icons';
 import { documentsApi } from '../../api';
 import { DocumentLink } from './DocumentLinkExtension';
+import { flattenFolders } from './folderUtils';
 import { useDebouncedValue } from '../../utils/useDebouncedValue';
 
-const NoteEditor = ({ note, onSave, onTitleChange }) => {
+const NoteEditor = ({ note, folders = [], onSave, onTitleChange, onFolderChange }) => {
+  const navigate = useNavigate();
   const [title, setTitle] = useState(note?.title || '');
   const [linkOpen, setLinkOpen] = useState(false);
   const [docQuery, setDocQuery] = useState('');
   const [docResults, setDocResults] = useState([]);
   const debouncedQ = useDebouncedValue(docQuery);
 
+  const handleEditorClick = useCallback(
+    (_view, event) => {
+      const anchor = event.target.closest?.('a[href]');
+      if (!anchor) return false;
+      const href = anchor.getAttribute('href');
+      if (!href || href === '#') return false;
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.ctrlKey || event.metaKey || event.button === 1) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+      } else {
+        navigate(href);
+      }
+      return true;
+    },
+    [navigate]
+  );
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
       Underline,
       Highlight,
-      Link.configure({ openOnClick: false }),
+      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'note-link' } }),
       Placeholder.configure({ placeholder: 'Bắt đầu viết ghi chú...' }),
       TaskList,
       TaskItem.configure({ nested: true }),
-      Table.configure({ resizable: true }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: { class: 'note-table' },
+      }),
       TableRow,
       TableCell,
       TableHeader,
@@ -52,6 +77,11 @@ const NoteEditor = ({ note, onSave, onTitleChange }) => {
       DocumentLink,
     ],
     content: note?.content ? JSON.parse(note.content) : '',
+    editorProps: {
+      handleDOMEvents: {
+        click: handleEditorClick,
+      },
+    },
     onUpdate: ({ editor: ed }) => {
       onSave?.({ content: JSON.stringify(ed.getJSON()) });
     },
@@ -77,28 +107,37 @@ const NoteEditor = ({ note, onSave, onTitleChange }) => {
   const applyDocumentLink = useCallback(
     (doc) => {
       if (!editor) return;
-      const text = editor.state.doc.textBetween(
-        editor.state.selection.from,
-        editor.state.selection.to,
-        ' '
-      ) || doc.title;
+      const text =
+        editor.state.doc.textBetween(editor.state.selection.from, editor.state.selection.to, ' ') ||
+        doc.title;
       editor
         .chain()
         .focus()
-        .setMark('documentLink', {
-          documentId: doc.id,
-          slug: doc.slug,
-          anchorText: text,
-          available: true,
+        .insertContent({
+          type: 'text',
+          marks: [
+            {
+              type: 'documentLink',
+              attrs: {
+                documentId: doc.id,
+                slug: doc.slug || '',
+                anchorText: text,
+                available: true,
+              },
+            },
+          ],
+          text,
         })
-        .insertContent(text)
         .run();
       setLinkOpen(false);
+      setDocQuery('');
     },
     [editor]
   );
 
   if (!editor) return null;
+
+  const folderOptions = flattenFolders(folders).map((f) => ({ value: f.id, label: f.label }));
 
   const btn = (active, onClick, icon) => (
     <Button type={active ? 'primary' : 'text'} size="small" icon={icon} onClick={onClick} />
@@ -116,6 +155,18 @@ const NoteEditor = ({ note, onSave, onTitleChange }) => {
           onTitleChange?.(e.target.value);
         }}
       />
+      <div className="note-editor__meta">
+        <FolderOutlined className="note-editor__meta-icon" />
+        <Select
+          className="note-editor__folder"
+          placeholder="Không có thư mục"
+          allowClear
+          value={note?.folder_id ?? undefined}
+          options={folderOptions}
+          onChange={(value) => onFolderChange?.(value ?? null)}
+        />
+        <span className="note-editor__meta-hint">Ctrl + click để mở liên kết trong tab mới</span>
+      </div>
       <div className="note-editor__toolbar">
         {btn(editor.isActive('bold'), () => editor.chain().focus().toggleBold().run(), <BoldOutlined />)}
         {btn(editor.isActive('italic'), () => editor.chain().focus().toggleItalic().run(), <ItalicOutlined />)}
@@ -139,7 +190,7 @@ const NoteEditor = ({ note, onSave, onTitleChange }) => {
         footer={null}
       >
         <Input
-          placeholder="Tìm theo tên, môn, khoa..."
+          placeholder="Tìm theo tên, môn, khoa, tag..."
           value={docQuery}
           onChange={(e) => setDocQuery(e.target.value)}
           style={{ marginBottom: 12 }}

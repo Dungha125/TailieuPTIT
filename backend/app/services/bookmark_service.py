@@ -43,6 +43,15 @@ def bookmark_to_dict(bookmark: DocumentBookmark, doc: Document | None) -> dict:
     }
 
 
+def list_bookmark_document_ids(db: Session, user: User) -> list[int]:
+    rows = (
+        db.query(DocumentBookmark.document_id)
+        .filter(DocumentBookmark.user_id == user.id)
+        .all()
+    )
+    return [row[0] for row in rows]
+
+
 def list_bookmarks(db: Session, user: User, folder_id: int | None = None) -> list[dict]:
     query = db.query(DocumentBookmark).filter(DocumentBookmark.user_id == user.id)
     if folder_id is not None:

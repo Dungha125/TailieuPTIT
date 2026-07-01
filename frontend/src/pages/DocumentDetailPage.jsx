@@ -2,13 +2,15 @@ import { Button, Tag, Spin, Descriptions, Space } from 'antd';
 import { DownloadOutlined, EyeOutlined, FileOutlined } from '@ant-design/icons';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { documentsApi } from '../api';
+import { documentsApi, userApi } from '../api';
+import BookmarkButton from '../components/BookmarkButton';
 import PreviewModal from '../components/PreviewModal';
 import RelatedDocuments from '../components/RelatedDocuments';
 import SeoBreadcrumb from '../seo/SeoBreadcrumb';
 import SeoHead from '../seo/SeoHead';
 import { breadcrumbSchema, creativeWorkSchema } from '../seo/schema';
 import { categoryPath, documentPath, documentTitle } from '../seo/seoConfig';
+import { useUserAuth } from '../context/UserAuthContext';
 import { downloadBlob, formatDate, formatFileSize, isPreviewable } from '../utils/helpers';
 
 /**
@@ -19,6 +21,7 @@ const DocumentDetailPage = ({ legacyId = false }) => {
   const params = useParams();
   const slug = legacyId ? null : params.slug;
   const id = legacyId ? params.id : null;
+  const { isAuthenticated } = useUserAuth();
 
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -64,6 +67,11 @@ const DocumentDetailPage = ({ legacyId = false }) => {
       cancelled = true;
     };
   }, [slug, id]);
+
+  useEffect(() => {
+    if (!document?.id || !isAuthenticated) return;
+    userApi.recordView(document.id).catch(() => {});
+  }, [document?.id, isAuthenticated]);
 
   const handleDownload = async () => {
     if (!document) return;
@@ -124,7 +132,10 @@ const DocumentDetailPage = ({ legacyId = false }) => {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginBottom: 24 }}>
           <FileOutlined style={{ fontSize: 48, color: '#D32F2F' }} aria-hidden />
           <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: '1.5rem', marginBottom: 8, color: '#D32F2F' }}>{document.title}</h1>
+            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+              <h1 style={{ fontSize: '1.5rem', marginBottom: 8, color: '#D32F2F', flex: 1 }}>{document.title}</h1>
+              <BookmarkButton documentId={document.id} size="large" />
+            </div>
             <div className="doc-card-tags">
               {document.tags?.faculty && <Tag color="red">{document.tags.faculty}</Tag>}
               {document.tags?.subject && <Tag color="red">{document.tags.subject}</Tag>}

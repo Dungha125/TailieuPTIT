@@ -13,7 +13,17 @@ export const DocumentLink = Mark.create({
   },
 
   parseHTML() {
-    return [{ tag: 'a[data-document-id]' }];
+    return [
+      {
+        tag: 'a[data-document-id]',
+        getAttrs: (node) => ({
+          documentId: node.getAttribute('data-document-id'),
+          slug: node.getAttribute('data-slug') || '',
+          anchorText: node.textContent || '',
+          available: node.classList?.contains('doc-link--unavailable') ? false : true,
+        }),
+      },
+    ];
   },
 
   renderHTML({ HTMLAttributes }) {
@@ -22,14 +32,14 @@ export const DocumentLink = Mark.create({
       : HTMLAttributes.documentId
         ? `/documents/${HTMLAttributes.documentId}`
         : '#';
+    const unavailable = HTMLAttributes.available === false || HTMLAttributes.available === 'false';
     return [
       'a',
       mergeAttributes(HTMLAttributes, {
         'data-document-id': HTMLAttributes.documentId,
+        'data-slug': HTMLAttributes.slug || '',
         href,
-        target: '_blank',
-        rel: 'noopener noreferrer',
-        class: HTMLAttributes.available === false ? 'doc-link doc-link--unavailable' : 'doc-link',
+        class: unavailable ? 'doc-link doc-link--unavailable' : 'doc-link',
         title: HTMLAttributes.anchorText || 'Tài liệu',
       }),
       0,

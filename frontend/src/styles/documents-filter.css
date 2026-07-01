@@ -267,6 +267,41 @@
   display: none;
 }
 
+.documents-hub-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 20px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  border: 1px solid var(--filter-border);
+}
+
+.documents-hub-tabs__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--filter-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.documents-hub-tabs__btn:hover {
+  color: var(--filter-accent);
+}
+
+.documents-hub-tabs__btn--active {
+  background: #fff;
+  color: var(--filter-accent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
 @media (max-width: 900px) {
   .documents-page__filter-btn {
     display: inline-flex;

@@ -44,6 +44,14 @@ def delete_bookmark_folder(
     bookmark_service.delete_bookmark_folder(db, current_user, folder_id)
 
 
+@router.get("/bookmarks/ids", response_model=list[int])
+def bookmark_document_ids(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return bookmark_service.list_bookmark_document_ids(db, current_user)
+
+
 @router.get("/bookmarks", response_model=list[BookmarkResponse])
 def list_bookmarks(
     folder_id: int | None = None,

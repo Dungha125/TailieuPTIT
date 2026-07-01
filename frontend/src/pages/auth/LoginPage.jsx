@@ -7,7 +7,7 @@ const LoginPage = () => {
   const { login } = useUserAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const next = params.get('next') || '/app/dashboard';
+  const next = params.get('redirect') || params.get('next') || '/documents';
 
   const onFinish = async (values) => {
     try {

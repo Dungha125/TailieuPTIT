@@ -11,8 +11,8 @@ import { useState } from 'react';
 import { useUserAuth } from '../../context/UserAuthContext';
 
 const NAV = [
-  { path: '/app/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-  { path: '/app/notes', icon: <EditOutlined />, label: 'Ghi chú' },
+  { path: '/documents', icon: <DashboardOutlined />, label: 'Tài liệu' },
+  { path: '/documents?tab=notes', icon: <EditOutlined />, label: 'Ghi chú' },
   { path: '/app/profile', icon: <UserOutlined />, label: 'Hồ sơ' },
 ];
 

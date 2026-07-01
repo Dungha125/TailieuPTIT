@@ -1,4 +1,4 @@
-import { FilterOutlined } from '@ant-design/icons';
+import { FilterOutlined, FileTextOutlined, EditOutlined } from '@ant-design/icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { documentsApi } from '../api';
@@ -6,10 +6,12 @@ import Breadcrumb from '../components/documents/Breadcrumb';
 import DocumentGrid from '../components/documents/DocumentGrid';
 import Pagination from '../components/documents/Pagination';
 import SidebarTree from '../components/documents/SidebarTree';
+import NotesWorkspace from '../components/notes/NotesWorkspace';
 import PreviewModal from '../components/PreviewModal';
 import SeoHead from '../seo/SeoHead';
 import { breadcrumbSchema, collectionPageSchema } from '../seo/schema';
 import { PAGE_SEO, documentPath } from '../seo/seoConfig';
+import { useUserAuth } from '../context/UserAuthContext';
 import {
   buildFilterSearchParams,
   breadcrumbFilterFromIndex,
@@ -19,12 +21,16 @@ import {
 import { useDebouncedValue } from '../utils/useDebouncedValue';
 import { downloadBlob } from '../utils/helpers';
 import '../styles/documents-filter.css';
+import '../styles/user-notes.css';
 
 const PAGE_SIZE = 12;
 
 const DocumentsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useUserAuth();
+  const hubTab = searchParams.get('tab') === 'notes' ? 'notes' : 'docs';
+  const noteId = searchParams.get('note');
   const parsed = parseFilterFromSearchParams(searchParams);
   const filter = useMemo(
     () => ({
@@ -52,12 +58,43 @@ const DocumentsPage = () => {
   const crumbs = useMemo(() => findNodePath(tree, filter), [tree, filter]);
 
   const applyState = useCallback(
-    (nextFilter, nextPage = 1, q = debouncedQ) => {
+    (nextFilter, nextPage = 1, q = debouncedQ, extras = {}) => {
       const params = buildFilterSearchParams(nextFilter, nextPage, q);
+      if (extras.tab === 'notes') {
+        params.set('tab', 'notes');
+        if (extras.noteId) params.set('note', String(extras.noteId));
+      }
       setSearchParams(params, { replace: true });
     },
     [debouncedQ, setSearchParams]
   );
+
+  const setHubTab = (tab) => {
+    if (tab === 'notes' && !isAuthenticated) {
+      navigate(`/login?redirect=${encodeURIComponent('/documents?tab=notes')}`);
+      return;
+    }
+    const params = buildFilterSearchParams(filter, page, debouncedQ);
+    if (tab === 'notes') {
+      params.set('tab', 'notes');
+      if (noteId) params.set('note', noteId);
+    }
+    setSearchParams(params, { replace: true });
+  };
+
+  const openNote = (id) => {
+    const params = buildFilterSearchParams(filter, page, debouncedQ);
+    params.set('tab', 'notes');
+    if (id) params.set('note', String(id));
+    else params.delete('note');
+    setSearchParams(params, { replace: true });
+  };
+
+  useEffect(() => {
+    if (hubTab === 'notes' && !authLoading && !isAuthenticated) {
+      navigate(`/login?redirect=${encodeURIComponent('/documents?tab=notes')}`);
+    }
+  }, [hubTab, authLoading, isAuthenticated, navigate]);
 
   useEffect(() => {
     documentsApi
@@ -68,6 +105,7 @@ const DocumentsPage = () => {
   }, []);
 
   useEffect(() => {
+    if (hubTab === 'notes') return;
     setLoading(true);
     documentsApi
       .browse({
@@ -85,7 +123,7 @@ const DocumentsPage = () => {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [page, filter, debouncedQ]);
+  }, [page, filter, debouncedQ, hubTab]);
 
   useEffect(() => {
     const currentQ = searchParams.get('q') || '';
@@ -129,7 +167,11 @@ const DocumentsPage = () => {
     }
   };
 
-  const pageTitle = crumbs.length > 1 ? crumbs[crumbs.length - 1].label : 'Danh sách tài liệu';
+  const pageTitle = hubTab === 'notes'
+    ? 'Ghi chú của tôi'
+    : crumbs.length > 1
+      ? crumbs[crumbs.length - 1].label
+      : 'Danh sách tài liệu';
   const seoPath = `/documents${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
 
   const sidebar = (
@@ -156,8 +198,37 @@ const DocumentsPage = () => {
       />
 
       <h1 className="page-title">{pageTitle}</h1>
-      <p className="page-subtitle">Tra cứu và tải xuống tài liệu công khai PTIT</p>
+      <p className="page-subtitle">
+        {hubTab === 'notes'
+          ? 'Soạn thảo ghi chú và liên kết tài liệu học tập'
+          : 'Tra cứu và tải xuống tài liệu công khai PTIT'}
+      </p>
 
+      {isAuthenticated && (
+        <div className="documents-hub-tabs" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={hubTab === 'docs'}
+            className={`documents-hub-tabs__btn ${hubTab === 'docs' ? 'documents-hub-tabs__btn--active' : ''}`}
+            onClick={() => setHubTab('docs')}
+          >
+            <FileTextOutlined /> Tài liệu
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={hubTab === 'notes'}
+            className={`documents-hub-tabs__btn ${hubTab === 'notes' ? 'documents-hub-tabs__btn--active' : ''}`}
+            onClick={() => setHubTab('notes')}
+          >
+            <EditOutlined /> Ghi chú
+          </button>
+        </div>
+      )}
+
+      {hubTab === 'docs' && (
+        <>
       <div className="documents-page__toolbar">
         <button type="button" className="documents-page__filter-btn" onClick={() => setDrawerOpen(true)}>
           <FilterOutlined /> Bộ lọc
@@ -165,7 +236,7 @@ const DocumentsPage = () => {
         <div className="documents-page__search">
           <input
             type="search"
-            placeholder="Tìm kiếm tài liệu..."
+            placeholder="Tìm theo tên, mô tả hoặc tag..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -192,6 +263,12 @@ const DocumentsPage = () => {
           <Pagination page={page} totalPages={totalPages} onChange={handlePageChange} />
         </div>
       </div>
+        </>
+      )}
+
+      {hubTab === 'notes' && isAuthenticated && (
+        <NotesWorkspace noteId={noteId} onSelectNote={openNote} />
+      )}
 
       <PreviewModal
         document={previewDoc}
